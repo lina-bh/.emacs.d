@@ -1,43 +1,21 @@
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages '(ergoemacs-mode)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(default ((t (:family "Consolas"))))
- '(variable-pitch ((t (:height 110 :family "Calibri")))))
+;; -*- lexical-binding: t; -*-
 
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
-(dolist (package package-selected-packages)
-  (unless (package-installed-p package)
-    (package-install package)))
+(setq-default mouse-wheel-scroll-amount '(1 ((shift) . 1))
+	      mouse-wheel-progressive-speed nil
+	      mouse-wheel-follow-mouse 't
+	      scroll-step 1
 
-(ido-mode t)
-(show-paren-mode t)
-(auto-save-visited-mode t)
-(global-undo-tree-mode t)
+	      create-lockfiles nil
+	      make-backup-files nil
 
-;; scroll one line at a time (less "jumpy" than defaults)    
-(setq mouse-wheel-scroll-amount '(1 ((shift) . 1))
-      mouse-wheel-progressive-speed nil
-      mouse-wheel-follow-mouse 't
-      scroll-step 1) ;; keyboard scroll one line at a time
+	      org-adapt-indentation nil
+	      org-descriptive-links nil
 
-(setq create-lockfiles nil
-      make-backup-files nil)
-
-(setq-default default-directory (getenv "HOME"))
-
-(setq org-adapt-indentation nil
-      org-descriptive-links nil)
+	      inhibit-splash-screen t)
 
 (add-hook 'prog-mode-hook (defun my-prog-mode-hook ()
 			    (electric-pair-local-mode t)))
@@ -46,15 +24,47 @@
 			    (visual-line-mode t)
 			    (variable-pitch-mode t)))
 
+(add-hook 'after-init-hook (defun my-after-init-hook ()
+			     (recentf-open-files)))
+
+(ido-mode t)
+(show-paren-mode t)
+(auto-save-visited-mode t)
+(global-undo-tree-mode t)
+
+(recentf-mode t)
+(global-set-key (kbd "C-x C-r") 'recentf-open-files)
+
 (defun indent-buffer ()
   (interactive)
   (save-excursion
     (indent-region (point-min) (point-max))))
 
-(if (require 'ergoemacs-mode nil t)
-    (progn
-      (setq ergoemacs-keyboard-layout "gb")
-      ;;  ergoemacs-theme "lvl3")
-      (ergo)
-      (ergoemacs-mode t))
-  (cua-mode t))
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (split-window-below)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
+
+(defun split-and-follow-vertically ()
+  (interactive)
+  (split-window-right)
+  (balance-windows)
+  (other-window 1))
+(global-set-key (kbd "C-x 3") 'split-and-follow-vertically)
+
+(cua-mode t)
+(define-key cua-global-keymap (kbd "C-z") #'undo-tree-undo)
+(define-key cua-global-keymap (kbd "C-y") #'undo-tree-redo)
+(define-key cua-global-keymap (kbd "C-s") #'save-buffer)
+(define-key cua-global-keymap (kbd "C-f") #'isearch-forward)
+
+(set-face-attribute 'fringe nil :background nil)
+(when (eq system-type 'gnu/linux)
+  (tool-bar-mode 0)
+  (set-face-attribute 'default nil :family "DejaVu Sans Mono"
+		      :height 120)
+  (set-face-attribute 'variable-pitch nil :family "Noto Sans"))
+(when (eq system-type 'windows-nt)
+  (cd (getenv "USERPROFILE")))
