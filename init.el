@@ -18,6 +18,7 @@
 	      inhibit-splash-screen t)
 
 (add-hook 'prog-mode-hook (defun my-prog-mode-hook ()
+			    (display-line-numbers-mode t)
 			    (electric-pair-local-mode t)))
 
 (add-hook 'text-mode-hook (defun my-text-mode-hook ()
@@ -27,7 +28,7 @@
 (add-hook 'after-init-hook (defun my-after-init-hook ()
 			     (recentf-open-files)))
 
-(ido-mode t)
+;; (ido-mode t)
 (show-paren-mode t)
 (auto-save-visited-mode t)
 (global-undo-tree-mode t)
@@ -67,4 +68,10 @@
 		      :height 120)
   (set-face-attribute 'variable-pitch nil :family "Noto Sans"))
 (when (eq system-type 'windows-nt)
-  (cd (getenv "USERPROFILE")))
+  (cd (getenv "USERPROFILE"))
+  (set-face-attribute 'default nil
+		      :family "Consolas"
+		      :height 110)
+  (set-face-attribute 'variable-pitch nil
+		      :family "Tahoma"
+		      :height 110))
