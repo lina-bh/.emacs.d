@@ -2,6 +2,8 @@
 
 (show-paren-mode t)
 (auto-save-visited-mode t)
+(global-tab-line-mode t)
+(global-eldoc-mode 0)
 
 (setq-default mouse-wheel-scroll-amount '(1 ((shift) . 1))
 	      mouse-wheel-progressive-speed nil
@@ -9,8 +11,10 @@
 	      scroll-step 1
 	      create-lockfiles nil
 	      make-backup-files nil
-	      inhibit-splash-screen t)
+	      inhibit-splash-screen t
+	      vc-follow-symlinks t)
 
+(desktop-save-mode t)
 (require 'recentf)
 (recentf-mode t)
 (global-set-key (kbd "C-x C-r") 'recentf-open-files)
@@ -24,7 +28,7 @@
 (add-hook 'text-mode-hook (defun my-text-mode-hook ()
 			    (visual-line-mode t)
 			    (variable-pitch-mode t)
-			    (setq-local cursor-style 'bar)))
+			    (setq-local cursor-type 'bar)))
 
 (defun split-and-follow-horizontally ()
   (interactive)
@@ -42,6 +46,8 @@
 
 (global-set-key (kbd "C-k") #'kill-whole-line)
 
+(define-key minibuffer-local-map (kbd "C-u") #'backward-kill-sentence)
+
 (require 'cua-base)
 (cua-mode t)
 (define-key cua-global-keymap (kbd "C-z") #'undo)
@@ -55,12 +61,14 @@
   (save-excursion
     (indent-region (point-min) (point-max))))
 
+(defalias 'yes-or-no-p 'y-or-n-p)
+
 (set-face-attribute 'fringe nil :background (face-background 'default))
 
 (when (eq system-type 'gnu/linux)
   (tool-bar-mode 0)
   (set-face-attribute 'default nil :family "DejaVu Sans Mono"
-		      :height 120)
+		      :height 110)
   (set-face-attribute 'variable-pitch nil :family "Noto Sans"))
 
 (when (eq system-type 'windows-nt)
@@ -94,7 +102,8 @@
 
 (use-package flycheck
   :defer t
-  :hook ((prog-mode . flycheck-mode))
+  :hook ((prog-mode . flycheck-mode)
+	 (flycheck-error-list-mode visual-line-mode))
   :config (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc)))
 
 (use-package rjsx-mode
@@ -102,7 +111,11 @@
   :config (setq-default
 	   js-chain-indent t
 	   js-indent-level 2
-	   js2-basic-offset 2))
+	   js2-basic-offset 2)
+  :bind (:map rjsx-mode-map
+	      ("<" . nil)
+	      ("C-d" . nil)
+	      (">" . nil)))
 
 (use-package add-node-modules-path
   :defer t
@@ -111,3 +124,21 @@
 (use-package prettier-js
   :defer t
   :hook (((js2-mode rjsx-mode) . prettier-js-mode)))
+
+(use-package eglot
+  :defer t
+  :config (setq-default eglot-stay-out-of '(flymake)))
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(package-selected-packages
+   '(eglot vterm undo-tree rjsx-mode prettier-js flycheck add-node-modules-path)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
