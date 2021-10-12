@@ -220,6 +220,8 @@ LaTeX macros are counted as 1 word. "
           (put-text-property (point) (point-at-eol) :org-wc wc)
           (goto-char (point-min)))))))
 
+(defvar org-wc--remove-overlay-hook 'before-change-functions)
+
 ;;;###autoload
 (defun org-wc-display (total-only)
   "Show subtree word counts in the entire buffer.
@@ -253,7 +255,7 @@ LaTeX macros are counted as 1 word."
             (org-wc-put-overlay wc)))
         ;; Arrange to remove the overlays upon next change.
         (when org-remove-highlights-with-change
-          (add-hook 'before-change-functions 'org-wc-remove-overlays
+          (add-hook org-wc--remove-overlay-hook 'org-wc-remove-overlays
                         nil 'local)))
     (set-buffer-modified-p bmp)))
     (org-word-count beg end)))
@@ -270,22 +272,26 @@ LaTeX macros are counted as 1 word."
 If LEVEL is given, prefix word count with a corresponding number of stars.
 This creates a new overlay and stores it in `org-wc-overlays', so that it
 will be easy to remove."
-  (let* ((c 60)
-         (off 0)
-         ov tx)
-    (org-move-to-column c)
+  (let* (
+	 ;; (c 60)
+         ;; (off 0)
+         ov tx
+	 )
+    ;; (org-move-to-column c) ;; move 80c
+    (move-end-of-line nil)
+    ;; move to first non-whitespace
     (unless (eolp) (skip-chars-backward "^ \t"))
     (skip-chars-backward " \t")
-    (setq ov (make-overlay (1- (point)) (point-at-eol))
-          tx (concat (buffer-substring (1- (point)) (point))
-                     (make-string (+ off (max 0 (- c (current-column)))) ?.)
-                     (org-add-props (format "%s" (number-to-string wc))
-                         (list 'face 'org-wc-overlay))
-                     ""))
-    (if (not (featurep 'xemacs))
-        (overlay-put ov 'display tx)
-      (overlay-put ov 'invisible t)
-      (overlay-put ov 'end-glyph (make-glyph tx)))
+    (setq
+     ov (make-overlay (1- (point)) (point-at-eol))
+     tx (concat
+	 (buffer-substring (1- (point)) (point))
+         ;; (make-string (+ off (max 0 (- c (current-column)))) ?.) ;; all them dots
+         (org-add-props
+	     (format " (%s words)" (number-to-string wc))
+             (list 'face 'org-wc-overlay))
+         ""))
+    (overlay-put ov 'display tx)
     (push ov org-wc-overlays)))
 
 ;;;###autoload
@@ -298,7 +304,7 @@ from the `before-change-functions' in the current buffer."
     (mapc 'delete-overlay org-wc-overlays)
     (setq org-wc-overlays nil)
     (unless noremove
-      (remove-hook 'before-change-functions
+      (remove-hook org-wc--remove-overlay-hook
                    'org-wc-remove-overlays 'local))))
 
 (defun org-wc--goto-char (char end)
