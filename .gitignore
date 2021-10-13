@@ -3,6 +3,7 @@
 !early-init.el
 !org-wc/**/*
 !use-package
-!lisp/*.el
+!lisp
+!lisp/**/*.el
 !.gitmodules
 !.gitignore
