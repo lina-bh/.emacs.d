@@ -12,3 +12,8 @@
 	w32-pipe-read-delay 0
 	w32-pipe-buffer-size 65536))
 
+;; last resort for flyspell: use aspell inside WSL
+(use-package ispell
+  :config (setq ispell-program-name (expand-file-name
+				     "aspell.cmd"
+				     user-emacs-directory)))
