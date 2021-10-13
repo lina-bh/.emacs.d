@@ -15,9 +15,7 @@
   (let* ((invocation-path
 	  (expand-file-name invocation-name invocation-directory))
 	 (kill-emacs-hook
-	  (append kill-emacs-hook (list
-				   (lambda ()
-				     (call-process
-				      invocation-path
-				      nil 0 nil))))))
+	  (append kill-emacs-hook
+		  (list (lambda ()
+			  (call-process invocation-path nil 0 nil))))))
     (save-buffers-kill-emacs)))

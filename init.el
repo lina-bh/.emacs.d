@@ -39,6 +39,8 @@
 		       (width . 90)
 		       )
  default-frame-alist initial-frame-alist
+ gnutls-min-prime-bits 3072
+ network-security-level 'high
  )
 (defalias 'yes-or-no-p 'y-or-n-p)
 (add-to-list 'package-archives
@@ -72,7 +74,7 @@
       (byte-compile-file buffer-file-name))))
 (add-hook 'emacs-lisp-mode-hook
 	  (defun lina/elisp-hook ()
-	    (add-hook 'kill-buffer-hook #'lina/elisp-save-hook nil t)
+	    ;; (add-hook 'kill-buffer-hook #'lina/elisp-save-hook nil t)
 	    (display-fill-column-indicator-mode t)))
 
 (defun split-and-follow-vertically ()
@@ -109,13 +111,7 @@
   (load "js.el"))
 
 (when (eq system-type 'windows-nt)
-  (cd (getenv "USERPROFILE"))
-  (set-face-attribute 'default nil
-		      :family "Consolas"
-		      :height 110)
-  (set-face-attribute 'variable-pitch nil
-		      :family "Calibri"
-		      :height 115))
+  (load "windows.el"))
 
 (use-package cua-base
   :init (cua-mode t)
