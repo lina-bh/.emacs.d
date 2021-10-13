@@ -1,9 +1,0 @@
-**/*
-!init.el
-!early-init.el
-!org-wc/**/*
-!use-package
-!lisp
-!lisp/**/*.el
-!.gitmodules
-!.gitignore
