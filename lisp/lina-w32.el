@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (cd (getenv "USERPROFILE"))
 (set-face-attribute 'default nil
 		    :family "Consolas"
@@ -13,7 +14,9 @@
 	w32-pipe-buffer-size 65536))
 
 ;; last resort for flyspell: use aspell inside WSL
-(use-package ispell
-  :config (setq ispell-program-name (expand-file-name
+(eval-after-load 'ispell
+  (setq ispell-program-name (expand-file-name
 				     "aspell.cmd"
 				     user-emacs-directory)))
+
+(provide 'lina-w32)
