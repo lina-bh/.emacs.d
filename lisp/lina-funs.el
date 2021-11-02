@@ -34,4 +34,8 @@
   (balance-windows)
   (other-window 1))
 
+(defun comment-line-in-place ()
+  (interactive)
+  (save-excursion (comment-line 1)))
+
 (provide 'lina-funs)

@@ -9,6 +9,8 @@
 
 (bind-key "C-u" #'backward-kill-sentence minibuffer-local-map)
 
+(bind-key "C-/" #'comment-line-in-place)
+
 (bind-keys :map emacs-lisp-mode-map
 	   ("C-c f" . indent-buffer)
 	   ("C-c e f" . indent-last-sexp))

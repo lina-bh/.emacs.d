@@ -4,6 +4,7 @@
 			    (column-number-mode t)
 			    (display-line-numbers-mode t)
 			    (electric-pair-local-mode t)
+			    (show-paren-local-mode t)
 			    (setq-local indicate-empty-lines t
 					show-trailing-whitespace t)))
 
@@ -14,6 +15,7 @@
 
 (add-hook 'emacs-lisp-mode-hook
 	  (defun lina/elisp-hook ()
+	    (set-buffer-file-coding-system 'unix)
 	    (display-fill-column-indicator-mode t)))
 
 (provide 'lina-hooks)
