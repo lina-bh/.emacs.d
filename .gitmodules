@@ -1,6 +1,3 @@
 [submodule "use-package"]
 	path = site-lisp/use-package
 	url = https://github.com/jwiegley/use-package
-[submodule "site-lisp/org-wc"]
-	path = site-lisp/org-wc
-	url = git@github.com:linabeee/org-wc
