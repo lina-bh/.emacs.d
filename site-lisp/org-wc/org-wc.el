@@ -270,22 +270,19 @@ LaTeX macros are counted as 1 word."
 If LEVEL is given, prefix word count with a corresponding number of stars.
 This creates a new overlay and stores it in `org-wc-overlays', so that it
 will be easy to remove."
-  (let* ((c 60)
-         (off 0)
-         ov tx)
-    (org-move-to-column c)
+  (let (ov tx)
+    (move-end-of-line nil)
     (unless (eolp) (skip-chars-backward "^ \t"))
     (skip-chars-backward " \t")
-    (setq ov (make-overlay (1- (point)) (point-at-eol))
-          tx (concat (buffer-substring (1- (point)) (point))
-                     (make-string (+ off (max 0 (- c (current-column)))) ?.)
-                     (org-add-props (format "%s" (number-to-string wc))
-                         (list 'face 'org-wc-overlay))
-                     ""))
-    (if (not (featurep 'xemacs))
-        (overlay-put ov 'display tx)
-      (overlay-put ov 'invisible t)
-      (overlay-put ov 'end-glyph (make-glyph tx)))
+    (setq
+     ov (make-overlay (1- (point)) (point-at-eol))
+     tx (concat
+	 (buffer-substring (1- (point)) (point))
+         (org-add-props
+	     (format " (%s words)" (number-to-string wc))
+             (list 'face 'org-wc-overlay))
+         ""))
+    (overlay-put ov 'display tx)
     (push ov org-wc-overlays)))
 
 ;;;###autoload
