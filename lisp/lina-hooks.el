@@ -16,6 +16,14 @@
 (add-hook 'emacs-lisp-mode-hook
 	  (defun lina/elisp-hook ()
 	    (set-buffer-file-coding-system 'unix)
-	    (display-fill-column-indicator-mode t)))
+	    (display-fill-column-indicator-mode t)
+	    ;; https://www.reddit.com/r/emacs/comments/7y000a/how_to_add_lexicalbinding_t_to_every_new_elisp/
+	    (let ((auto-insert-query nil)
+                  (auto-insert-alist
+                   '(("\\.el\\'"
+                      ""
+                      ";; -*- lexical-binding: t; -*-\n\n"
+		      '(setq lexical-binding t)))))
+              (auto-insert))))
 
 (provide 'lina-hooks)

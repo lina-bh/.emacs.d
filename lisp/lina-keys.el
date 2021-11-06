@@ -22,7 +22,8 @@
 	      ("C-y" . nil)
 	      ("C-s" . save-buffer)
 	      ("C-f" . isearch-forward)
-	      ("<C-return>" . nil)))
+	      ("<C-return>" . nil)
+	      ("C-a" . mark-whole-buffer)))
 
 (use-package undo-tree
   :ensure t

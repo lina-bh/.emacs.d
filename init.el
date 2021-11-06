@@ -14,7 +14,8 @@
 (load custom-file t)
 
 (tool-bar-mode 0)
-;; (show-paren-mode t)
+(show-paren-mode 0)
+;; (auto-save-mode 0)
 (auto-save-visited-mode t)
 (global-tab-line-mode t)
 (global-eldoc-mode 0)
