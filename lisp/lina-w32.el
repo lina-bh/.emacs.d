@@ -1,4 +1,5 @@
 ;; -*- lexical-binding: t; -*-
+(setq-default w32-enable-synthesized-fonts t)
 (cd (getenv "USERPROFILE"))
 (set-face-attribute 'default nil
 		    :family "Consolas"

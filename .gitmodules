@@ -4,3 +4,6 @@
 [submodule "site-lisp/exec-path-from-shell"]
 	path = site-lisp/exec-path-from-shell
 	url = https://github.com/purcell/exec-path-from-shell
+[submodule "lisp/plantuml-mode"]
+	path = lisp/plantuml-mode
+	url = https://github.com/skuro/plantuml-mode

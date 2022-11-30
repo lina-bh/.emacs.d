@@ -3,6 +3,8 @@
 (set-face-attribute 'fill-column-indicator nil
 		    :background "pink")
 (set-face-attribute 'fringe nil :background (face-background 'default))
+(modify-all-frames-parameters '((width . 99)
+				(cursor-type . bar)))
 
 (when (eq system-type 'gnu/linux)
   (set-face-attribute 'default nil :family "DejaVu Sans Mono"
