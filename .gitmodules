@@ -1,0 +1,18 @@
+[submodule "exec-path-from-shell"]
+	path = site-lisp/exec-path-from-shell
+	url = https://github.com/purcell/exec-path-from-shell
+[submodule "phscroll"]
+	path = site-lisp/phscroll
+	url = https://github.com/misohena/phscroll
+[submodule "engrave-faces"]
+	path = site-lisp/engrave-faces
+	url = https://github.com/tecosaur/engrave-faces
+[submodule "eglot-java"]
+	path = site-lisp/eglot-java
+	url = https://github.com/lina-bh/eglot-java
+[submodule "org-wc"]
+	path = site-lisp/org-wc
+	url = https://github.com/lina-bh/org-wc
+[submodule "benchmark-init-el"]
+	path = site-lisp/benchmark-init
+	url = https://github.com/dholm/benchmark-init-el
