@@ -31,7 +31,7 @@
 	      ("C-c 2" . #'eglot-rename)))
 
 (use-package eglot-java
-  :load-path "lisp/eglot-java"
+  :load-path "site-lisp/eglot-java"
   :defines eglot-java-mode-map
   :commands eglot-java-file-new eglot-java-run-main
   :hook ((java-mode . eglot-java-mode)

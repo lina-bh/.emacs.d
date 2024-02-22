@@ -5,6 +5,10 @@
 
 (use-package savehist
   :custom (savehist-mode t))
+(use-package recentf
+  :custom
+  (recentf-mode t)
+  (recentf-max-menu-items 20))
 (use-package orderless
   :ensure
   :custom (completion-styles '(orderless basic)))
@@ -18,7 +22,6 @@
   (vertico-mode t))
 (use-package consult
   :ensure
-  ;; :custom (consult-preview-excluded-files '("\\`/[^/|:]+:" "\\.org\\'"))
   :bind (("C-x b" . #'consult-buffer)
          ("C-x p f" . #'consult-find)
          ("C-x p g" . #'consult-ripgrep)
@@ -32,7 +35,13 @@
   :custom (xref-show-xrefs-function #'consult-xref))
 (use-package consult-info
   :after info consult
-  :bind (("C-h g" . #'consult-info)))
+  :init
+  (defun lina-consult-emacs-manuals ()
+    (interactive)
+    (funcall-interactively #'consult-info "emacs" "elisp"))
+  :bind
+  ("C-h g" . #'lina-consult-emacs-manuals)
+  ("C-h G" . #'consult-info))
 (use-package corfu
   :ensure
   :custom (global-corfu-mode t))

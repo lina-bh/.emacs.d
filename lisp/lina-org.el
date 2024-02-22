@@ -23,11 +23,26 @@
   :ensure
   :pin gnu
   :defer t
+  :after unidecode
   :functions (org-latex-compile
               org-latex-export-section-to-pdf
               org-export-to-file
               org-find-exact-headline-in-buffer
               org-get-outline-path)
+  :init
+  (defun org-latex-export-section-to-pdf ()
+    (interactive)
+    (if-let ((heading (nth 0 (org-get-outline-path t)))
+             (position (org-find-exact-headline-in-buffer
+                        heading
+                        (current-buffer)
+                        t))
+             (outfile (concat (unidecode-sanitize heading) ".tex")))
+        (save-excursion
+          (goto-char position)
+          (org-export-to-file
+              'latex outfile nil t nil nil nil #'org-latex-compile))
+      (funcall-interactively #'org-latex-export-to-pdf)))
   :custom
   (org-adapt-indentation nil)
   (org-link-descriptive nil)
@@ -79,19 +94,6 @@
                      :foreground "grey50"
                      :inherit fixed-pitch))))
   :config
-  (defun org-latex-export-section-to-pdf ()
-    (interactive)
-    (require 'unidecode)
-    (if-let ((heading (nth 0 (org-get-outline-path t)))
-             (position (org-find-exact-headline-in-buffer
-                        heading
-                        (current-buffer)
-                        t))
-             (outfile (concat (unidecode-sanitize heading) ".tex")))
-        (save-excursion
-          (goto-char position)
-          (org-export-to-file 'latex outfile nil t nil nil nil #'org-latex-compile))
-      (funcall-interactively #'org-latex-export-to-pdf)))
   (setopt
    org-src-lang-modes
    (let* ((default-modes (standard-value 'org-src-lang-modes))
@@ -117,17 +119,21 @@
 
 ;; engravings give you no tactical advantage whatsoever.
 (use-package engrave-faces
-  :load-path "lisp/engrave-faces"
+  :preface
+  (unless (package-installed-p 'engrave-faces)
+    (package-vc-install "https://github.com/tecosaur/engrave-faces"))
   :after (ox-latex)
   :custom ((org-latex-src-block-backend 'engraved)))
 
-(use-package org-phscroll
-  :load-path "lisp/phscroll"
+(use-package phscroll
+  :preface
+  (unless (package-installed-p 'phscroll)
+    (package-vc-install "https://github.com/misohena/phscroll"))
   :after (org))
 
 (use-package org-wc
   :disabled t
-  :load-path "lisp/org-wc"
+  :load-path "site-lisp/org-wc"
   :after org
   :bind (:map org-mode-map
 	      ("C-c w" . org-wc-display)))
