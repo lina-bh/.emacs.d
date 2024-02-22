@@ -1,4 +1,8 @@
 ;; -*- lexical-binding: t; -*-
+(eval-when-compile
+  (require 'use-package)
+  (require 'bind-key))
+
 (defun restart-python ()
   (interactive)
   (let ((buffer (get-buffer "*Python*"))
@@ -11,13 +15,10 @@
   (interactive)
   (restart-python)
   (sleep-for 0 1)
-  (if buffer-file-name
-      (progn
-	(save-some-buffers t
-			   (lambda ()
-			     (string= (file-name-extension buffer-file-name) "py")))
-	(python-shell-send-file buffer-file-name))
-    (python-shell-send-buffer)))
+  (save-some-buffers t
+		     (lambda ()
+		       (string= (file-name-extension buffer-file-name) "py")))
+  (call-interactively 'python-shell-send-file))
 
 (defun python-tab ()
   (interactive)
@@ -33,21 +34,10 @@
       (indent-line-to python-indent-offset))))
 
 (use-package python
-  :custom (python-shell-interpreter-args "-i -q")
-  :bind (:map python-mode-map
-	      ("C-c C-c" . 'restart-python-send-current)
-	      ("<tab>" . 'python-tab)
-	      ("<backtab>" . 'python-indent-shift-left))
-  :bind (:map inferior-python-mode-map
-	      ("<up>" . 'comint-previous-input)
-	      ("<down>" . 'comint-next-input)))
-
-(use-package python-black
-  :ensure t
-  :config
-  (add-hook 'python-mode-hook
-	    (defun lina/enable-black ()
-	      (python-black-on-save-mode
-	       (not (eq major-mode 'inferior-python-mode))))))
-
-(provide 'lina-python)
+  :defer t
+  :custom ((python-shell-interpreter-args "-i -q"))
+  :bind ((:map python-mode-map
+	       ("C-c C-l" . 'restart-python-send-current)
+	       ;; ("<tab>" . 'python-tab)
+	       ;; ("<backtab>" . 'python-indent-shift-left))
+	       )))

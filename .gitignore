@@ -1,0 +1,9 @@
+*
+!*/
+!/.git*
+!/*.el
+/custom.el
+!lisp/**
+!site-lisp/**
+**/.DS_Store
+**/*.elc
