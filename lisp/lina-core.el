@@ -3,27 +3,25 @@
   (require 'bind-key))
 
 (setopt
+ blink-cursor-mode nil
+ column-number-mode t
+ compilation-ask-about-save nil
+ create-lockfiles nil
+ delete-selection-mode t
  frame-title-format "%b"
  indicate-empty-lines t
- ring-bell-function 'ignore
- create-lockfiles nil
- gc-cons-threshold 1600000
- scroll-preserve-screen-position t
- scroll-step 1
- use-dialog-box nil
- use-short-answers t
  inhibit-splash-screen t
- tab-always-indent t
- column-number-mode t
- delete-selection-mode t
- warning-minimum-level :error
  native-comp-async-report-warnings-errors nil
  package-native-compile t
- compilation-ask-about-save nil
+ ring-bell-function 'ignore
+ scroll-preserve-screen-position t
+ scroll-step 1
+ tab-always-indent t
+ use-dialog-box nil
+ use-short-answers t
  vc-follow-symlinks t
- recentf-mode t
- blink-cursor-mode nil)
-;;(indent-tabs-mode nil)
+ warning-minimum-level :error
+ )
 (set-face-attribute 'fringe nil :background (face-background 'default))
 (when (display-graphic-p)
   (modify-all-frames-parameters '((height . 57)
@@ -71,14 +69,16 @@
   (make-backup-files nil)
   (auto-save-default nil))
 
-(use-package pixel-scroll
+(use-package mwheel
   :custom
-  (pixel-scroll-precision-mode t)
   (mouse-wheel-follow-mouse 't)
   (mouse-wheel-progressive-speed nil)
   (mouse-wheel-tilt-scroll t)
   (mouse-wheel-scroll-amount '(1 ((shift) . 1)))
   (mouse-wheel-scroll-amount-horizontal '(1 ((shift) . 1))))
+
+(use-package pixel-scroll
+  :custom (pixel-scroll-precision-mode t))
 
 ;; backup-directory-alist (let ((backup-directory (locate-user-emacs-file "backups/")))
 ;;                          (make-directory backup-directory t)
