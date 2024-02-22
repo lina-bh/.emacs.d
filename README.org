@@ -1,3 +1,0 @@
-* linabeee/.emacs.d
-
-yer wha
