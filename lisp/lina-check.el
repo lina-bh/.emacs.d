@@ -34,6 +34,7 @@
   :load-path "site-lisp/eglot-java"
   :defines eglot-java-mode-map
   :commands eglot-java-file-new eglot-java-run-main
+  :custom (eglot-java-file-new-ask-type nil)
   :hook ((java-mode . eglot-java-mode)
 	 (java-ts-mode . eglot-java-mode))
   :bind (:map eglot-java-mode-map

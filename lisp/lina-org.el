@@ -3,7 +3,7 @@
   (require 'use-package)
   (require 'bind-key))
 
-(defun standard-value (sym)
+(defun lina-standard-value (sym)
   (eval (car (get sym 'standard-value))))
 
 (defun alist-string-cdr-get (key alist)
@@ -23,13 +23,13 @@
   :ensure
   :pin gnu
   :defer t
-  :after unidecode
   :functions (org-latex-compile
               org-latex-export-section-to-pdf
               org-export-to-file
               org-find-exact-headline-in-buffer
               org-get-outline-path)
   :init
+  (require 'unidecode)
   (defun org-latex-export-section-to-pdf ()
     (interactive)
     (if-let ((heading (nth 0 (org-get-outline-path t)))
@@ -59,8 +59,8 @@
   (org-refile-targets '((nil
                          :maxlevel . 2)))
   (org-html-postamble nil)
-  (org-latex-classes '
-   (("article" "\\documentclass[a4paper,11pt]{article}"
+  (org-latex-classes
+   '(("article" "\\documentclass[a4paper,11pt]{article}"
      ("\\section{%s}" . "\\section*{%s}")
      ("\\subsection{%s}" . "\\subsection*{%s}")
      ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
@@ -84,19 +84,12 @@
                               ("" "lmodern")))
   (org-latex-remove-logfiles nil)
   (org-latex-pdf-process
-   '("%latex -interaction=nonstopmode %f"
-     "%latex -interaction=nonstopmode -synctex=1 %f"))
-  :custom-face
-  (org-table ((t (:inherit fixed-pitch))))
-  (org-block ((t (:inherit fixed-pitch))))
-  (org-verbatim ((t (
-                     :background unspecified
-                     :foreground "grey50"
-                     :inherit fixed-pitch))))
+   '("%latex -interaction=nonstopmode -output-directory=%o %f"
+     "%latex -interaction=nonstopmode -output-directory=%o -draftmode %f"))
   :config
   (setopt
    org-src-lang-modes
-   (let* ((default-modes (standard-value 'org-src-lang-modes))
+   (let* ((default-modes (lina-standard-value 'org-src-lang-modes))
           (make-function (lambda (value)
                            (lambda (key)
                              (setf (alist-get key default-modes) value)))))
@@ -108,7 +101,6 @@
   :hook (org-mode . variable-pitch-mode)
   :hook (org-babel-after-execute . org-redisplay-inline-images)
   :bind (:map org-mode-map
-              ("C-c C-x C-r" . #'org-redisplay-inline-images)
               ("C-c p" . #'org-latex-export-to-pdf)
               ("C-c s p" . #'org-latex-export-section-to-pdf)
               ("C-c t" . #'org-babel-tangle)))
@@ -123,7 +115,7 @@
   (unless (package-installed-p 'engrave-faces)
     (package-vc-install "https://github.com/tecosaur/engrave-faces"))
   :after (ox-latex)
-  :custom ((org-latex-src-block-backend 'engraved)))
+  :custom (org-latex-src-block-backend 'engraved))
 
 (use-package phscroll
   :preface

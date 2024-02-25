@@ -8,7 +8,12 @@
 (use-package recentf
   :custom
   (recentf-mode t)
-  (recentf-max-menu-items 20))
+  (recentf-max-menu-items 40)
+  :bind ("C-x C-r" . #'recentf-open))
+(use-package ffap
+  :bind (("C-x C-d" . #'dired-at-point)
+         ("C-x C-f" . #'find-file-at-point)))
+
 (use-package orderless
   :ensure
   :custom (completion-styles '(orderless basic)))
@@ -19,29 +24,41 @@
   :ensure
   :custom
   (vertico-count-format '("" . "%s/%s"))
-  (vertico-mode t))
+  (vertico-mode t)
+  :bind
+  (:map vertico-map
+        ("DEL" . #'vertico-directory-delete-char)))
+
 (use-package consult
   :ensure
-  :bind (("C-x b" . #'consult-buffer)
-         ("C-x p f" . #'consult-find)
-         ("C-x p g" . #'consult-ripgrep)
-         ("M-g i" . #'consult-imenu)))
+  :custom
+  (consult-async-split-style nil)
+  :bind
+  ("C-x p f" . #'consult-find)
+  ("C-x p g" . #'consult-ripgrep)
+  ("M-g i" . #'consult-imenu))
 (use-package consult-org
   :after org consult
   :bind (:map org-mode-map
               (("C-c C-j" . #'consult-org-heading))))
 (use-package consult-xref
   :after xref consult
-  :custom (xref-show-xrefs-function #'consult-xref))
+  :custom
+  (xref-show-xrefs-function #'consult-xref)
+  (xref-show-definitions-function #'consult-xref))
 (use-package consult-info
   :after info consult
-  :init
-  (defun lina-consult-emacs-manuals ()
-    (interactive)
-    (funcall-interactively #'consult-info "emacs" "elisp"))
-  :bind
-  ("C-h g" . #'lina-consult-emacs-manuals)
-  ("C-h G" . #'consult-info))
+  :bind ("C-h i" . #'consult-info))
 (use-package corfu
   :ensure
   :custom (global-corfu-mode t))
+
+(use-package embark
+  :ensure
+  :bind
+  (:map minibuffer-local-map
+        ("C-e" . #'embark-export)
+        ("C-s" . #'embark-collect)))
+(use-package embark-consult
+  :after embark
+  :ensure)

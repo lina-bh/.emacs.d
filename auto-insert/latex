@@ -1,0 +1,42 @@
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage[colorlinks=true,urlcolor=blue,linkcolor=,citecolor=]{hyperref}
+\usepackage[british]{babel}
+\usepackage[style=authoryear]{biblatex}
+\usepackage[english=british]{csquotes}
+
+\RequireCitationStyle{authoryear}
+\ExecuteBibliographyOptions{
+  giveninits=true,
+  uniquename=init,
+  isbn=false
+}
+\DeclareFieldFormat{url}{Available at\addcolon\space\url{#1}}
+\DeclareFieldFormat{urldate}{(Accessed: #1)}
+\DeclareFieldFormat{doi}{Available at\addcolon\space\href{https://doi.org/#1}{\nolinkurl{#1}}}
+\renewbibmacro{in:}{}
+\DeclareSourcemap{
+  \maps[datatype=bibtex]{
+    \map[overwrite]{
+      \step[fieldsource=doi, final]
+      \step[fieldset=url, null]
+      \step[fieldset=eprint, null]
+    }
+  }
+}
+\renewcommand*{\nameyeardelim}{\addcomma\space}
+
+\title{Title}
+\author{Lina  %
+  \texttt{<\href{mailto:lina@example.org}{lina@example.org}>}}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\printbibliography%
+
+\end{document}

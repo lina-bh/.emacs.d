@@ -1,84 +1,78 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'bind-key))
-
-(setopt
- blink-cursor-mode nil
- column-number-mode t
- compilation-ask-about-save nil
- create-lockfiles nil
- delete-selection-mode t
- frame-title-format "%b"
- indicate-empty-lines t
- inhibit-splash-screen t
- native-comp-async-report-warnings-errors nil
- package-native-compile t
- ring-bell-function 'ignore
- scroll-preserve-screen-position t
- scroll-step 1
- tab-always-indent t
- use-dialog-box nil
- use-short-answers t
- vc-follow-symlinks t
- warning-minimum-level :error
- )
-(set-face-attribute 'fringe nil :background (face-background 'default))
-(when (display-graphic-p)
-  (modify-all-frames-parameters '((height . 57)
-				  (width . 99)
-				  (cursor-type . bar)))
-  (setf (alist-get 'top initial-frame-alist) 0)
-  (setf (alist-get 'left initial-frame-alist) 0))
-
-(use-package display-line-numbers
+(use-package emacs
   :custom
-  (display-line-numbers-grow-only t)
-  (display-line-numbers-width-start 3)
-  :custom-face
-  (line-number-mode ((t (:family unspecified))))
-  (line-number-current-line ((t (:family unspecified))))
-  :hook prog-mode)
-
-(use-package display-fill-column-indicator
-  :custom
-  (display-fill-column-indicator-character ?\u2595) ;; RIGHT ONE EIGHT BLOCK
-  (display-fill-column-indicator-column 80)
-  :custom-face
-  (fill-column-indicator
-   ((t (:background unspecified :foreground "pink"))))
-  :hook prog-mode)
-
-(use-package eldoc
-  :custom (eldoc-echo-area-use-multiline-p nil)
-  :diminish eldoc-mode)
-
-(use-package paren
-  :custom (show-paren-mode nil)
-  :hook (prog-mode . show-paren-local-mode))
-
-(use-package simple
-  :hook (text-mode . visual-line-mode))
-
-(use-package tab-line
-  :custom
-  (global-tab-line-mode t)
-  (tab-line-new-button-show nil))
-
-(use-package files
-  :custom
+  (auto-save-default nil) ;; TODO find some way of doing this without polluting
+  (auto-insert-directory (locate-user-emacs-file "auto-insert/"))
+  (blink-cursor-mode nil)
+  (column-number-mode t)
+  (create-lockfiles nil)
+  (delete-selection-mode t)
+  (eldoc-echo-area-use-multiline-p nil)
+  (frame-title-format "%b")
+  (indicate-empty-lines t)
+  (inhibit-splash-screen t)
+  (initial-scratch-message "")
   (make-backup-files nil)
-  (auto-save-default nil))
-
-(use-package mwheel
-  :custom
   (mouse-wheel-follow-mouse 't)
   (mouse-wheel-progressive-speed nil)
-  (mouse-wheel-tilt-scroll t)
   (mouse-wheel-scroll-amount '(1 ((shift) . 1)))
-  (mouse-wheel-scroll-amount-horizontal '(1 ((shift) . 1))))
+  (mouse-wheel-scroll-amount-horizontal 1)
+  (mouse-wheel-tilt-scroll t)
+  (native-comp-async-report-warnings-errors nil)
+  (package-native-compile t)
+  (ring-bell-function 'ignore)
+  (scroll-preserve-screen-position t)
+  (scroll-step 1)
+  (show-paren-mode nil)
+  (tab-always-indent t)
+  (use-dialog-box nil)
+  (use-short-answers t)
+  (vc-follow-symlinks t)
+  (warning-minimum-level :error)
+  :diminish eldoc-mode
+  )
+;; (set-face-attribute 'fringe nil :background (face-background 'default))
+
+(use-package tab-line
+  :if window-system
+  :custom
+  (tab-line-new-button-show nil)
+  (global-tab-line-mode t))
+
+(use-package xt-mouse
+  :if (not window-system)
+  :custom (xterm-mouse-mode t))
+
+(use-package compile
+  :defer t
+  :config
+  (setopt compilation-ask-about-save nil))
 
 (use-package pixel-scroll
+  :if window-system
   :custom (pixel-scroll-precision-mode t))
+
+(use-package modus-themes
+  :load-path
+  (lambda ()
+    (expand-file-name (concat lisp-directory "../etc/themes")))
+  :custom
+  (modus-themes-fringes nil)
+  (modus-themes-mode-line '(3d))
+  (modus-themes-variable-pitch-ui t)
+  (modus-themes-mixed-fonts t)
+  (modus-themes-prompts '(intense))
+  (modus-themes-subtle-line-numbers t)
+  (modus-themes-syntax '(green-strings))
+  (modus-themes-inhibit-reload nil)
+  :custom-face
+  (mode-line ((t (:inherit nil))))
+  (mode-line-inactive ((t (:inherit nil))))
+  (tab-line-tab-current ((t (:weight normal))))
+  (tab-line-highlight ((t (:inherit nil))))
+  :config
+  (modus-themes-load-themes)
+  (modus-themes-load-operandi))
 
 ;; backup-directory-alist (let ((backup-directory (locate-user-emacs-file "backups/")))
 ;;                          (make-directory backup-directory t)
