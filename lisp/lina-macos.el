@@ -1,4 +1,7 @@
 ;; -*- lexical-binding: t; -*-
+(eval-and-compile
+  (require 'lina-package))
+
 (use-package emacs
   :if (eq system-type 'darwin)
   :custom

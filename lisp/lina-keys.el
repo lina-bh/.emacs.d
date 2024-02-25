@@ -1,7 +1,6 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'use-package)
-  (require 'bind-key))
+(eval-and-compile
+  (require 'lina-package))
 
 (use-package emacs
   :init

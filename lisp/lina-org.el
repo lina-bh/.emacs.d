@@ -1,27 +1,16 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'use-package)
-  (require 'bind-key))
+(eval-and-compile
+  (require 'lina-package))
 
 (defun lina-standard-value (sym)
   (eval (car (get sym 'standard-value))))
-
-(defun alist-string-cdr-get (key alist)
-  (if alist
-      (let ((x (car alist))
-	    (rest (cdr alist)))
-	(if (string-equal key (cadr x))
-	    x
-	  (alist-string-cdr-get key rest)))
-    nil))
 
 (use-package unidecode
   :straight t
   :defer t)
 
 (use-package org
-  :straight t
-  :pin gnu
+  :straight (:source gnu-elpa-mirror)
   :defer t
   :functions (org-latex-compile
               org-latex-export-section-to-pdf

@@ -2,10 +2,10 @@
 !/.git*
 !/*.el
 /custom.el
+!/Makefile
 !/lisp/
 /lisp/**/*
 !/lisp/**/*.el
 !/auto-insert/
-!/straight/repos/straight.el
 .DS_Store
 *.elc

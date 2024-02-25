@@ -1,7 +1,6 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'use-package)
-  (require 'bind-key))
+(eval-and-compile
+  (require 'lina-package))
 
 ;;; * base hooks & modes
 (use-package display-line-numbers

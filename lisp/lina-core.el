@@ -1,4 +1,7 @@
 ;; -*- lexical-binding: t; -*-
+(eval-and-compile
+  (require 'lina-package))
+
 (use-package emacs
   :custom
   (auto-save-default nil) ;; TODO find some way of doing this without polluting
@@ -68,7 +71,8 @@
   :custom-face
   (mode-line ((t (:inherit nil))))
   (mode-line-inactive ((t (:inherit nil))))
-  (tab-line-tab-current ((t (:weight normal))))
+  (tab-line-tab ((t (:weight normal))))
+  (tab-line-active ((t (:weight normal))))
   (tab-line-highlight ((t (:inherit nil))))
   :config
   (modus-themes-load-themes)

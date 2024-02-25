@@ -1,30 +1,9 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'use-package)
-  (require 'bind-key))
+(eval-and-compile
+  (require 'lina-package))
 
-(use-package ispell
-  :defer t
-  :custom ((ispell-program-name "aspell")
-	   (ispell-dictionary "british")))
-
-(use-package flyspell
-  :hook org-mode
-  :bind (:map flyspell-mode-map
-	      ([mouse-3] . flyspell-correct-word))
-  :config
-  (unbind-key [down-mouse-2] 'flyspell-mode-map)
-  (unbind-key "C-M-i" 'flyspell-mode-map))
-
-;; (defun lina/eglot-managed-mode-hook ()
-;;   ;; (eglot-inlay-hints-mode -1)
-;;   (put 'eglot-note 'flymake-overlay-control nil)
-;;   (put 'eglot-warning 'flymake-overlay-control nil)
-;;   (put 'eglot-error 'flymake-overlay-control nil))
 (use-package eglot
   :straight (:type built-in)
-  :commands eglot-rename
-  ;; :hook (eglot-managed-mode . lina/eglot-managed-mode-hook)
   :custom
   (eglot-ignored-server-capabilities '(:inlayHintProvider))
   (eglot-report-progress nil)
@@ -52,3 +31,16 @@
 	    ("Python" ruff)
             ("Shell" (shfmt "-ci" "-i" "2"))))
   :bind (("C-c f" . #'format-all-region-or-buffer)))
+
+(use-package ispell
+  :defer t
+  :custom (ispell-program-name "aspell")
+	  (ispell-dictionary "british"))
+
+(use-package flyspell
+  :hook org-mode
+  :bind (:map flyspell-mode-map
+	      ([mouse-3] . flyspell-correct-word))
+  :config
+  (unbind-key [down-mouse-2] 'flyspell-mode-map)
+  (unbind-key "C-M-i" 'flyspell-mode-map))
