@@ -15,13 +15,13 @@
          ("C-x C-f" . #'find-file-at-point)))
 
 (use-package orderless
-  :ensure
+  :straight t
   :custom (completion-styles '(orderless basic)))
 (use-package marginalia
-  :ensure
+  :straight t
   :custom (marginalia-mode t))
 (use-package vertico
-  :ensure
+  :straight t
   :custom
   (vertico-count-format '("" . "%s/%s"))
   (vertico-mode t)
@@ -30,7 +30,7 @@
         ("DEL" . #'vertico-directory-delete-char)))
 
 (use-package consult
-  :ensure
+  :straight t
   :custom
   (consult-async-split-style nil)
   :bind
@@ -50,15 +50,15 @@
   :after info consult
   :bind ("C-h i" . #'consult-info))
 (use-package corfu
-  :ensure
+  :straight t
   :custom (global-corfu-mode t))
 
 (use-package embark
-  :ensure
+  :straight t
   :bind
   (:map minibuffer-local-map
         ("C-e" . #'embark-export)
         ("C-s" . #'embark-collect)))
 (use-package embark-consult
-  :after embark
-  :ensure)
+  :straight t
+  :after embark)

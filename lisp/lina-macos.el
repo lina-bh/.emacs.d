@@ -13,5 +13,5 @@
   (tab-line ((((type ns)) (:family "Helvetica")))))
 
 (use-package dash-at-point
-  :ensure
+  :straight t
   :bind (("C-c d" . dash-at-point)))

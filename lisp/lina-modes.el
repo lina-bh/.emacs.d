@@ -144,12 +144,8 @@
   :defer t
   :custom (sql-product 'sqlite))
 
-(use-package rust-mode
-  :defer t
-  :ensure)
-
 (use-package yaml-mode
-  :ensure
+  :disabled t
   :hook (yaml-mode . display-line-numbers-mode))
 
 (use-package outline

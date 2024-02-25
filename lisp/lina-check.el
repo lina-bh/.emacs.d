@@ -22,6 +22,7 @@
 ;;   (put 'eglot-warning 'flymake-overlay-control nil)
 ;;   (put 'eglot-error 'flymake-overlay-control nil))
 (use-package eglot
+  :straight (:type built-in)
   :commands eglot-rename
   ;; :hook (eglot-managed-mode . lina/eglot-managed-mode-hook)
   :custom
@@ -31,7 +32,7 @@
 	      ("C-c 2" . #'eglot-rename)))
 
 (use-package eglot-java
-  :load-path "site-lisp/eglot-java"
+  :straight (:host github :repo "yveszoundi/eglot-java" :fork t)
   :defines eglot-java-mode-map
   :commands eglot-java-file-new eglot-java-run-main
   :custom (eglot-java-file-new-ask-type nil)
@@ -43,7 +44,7 @@
 	      ("C-c j r" . #'eglot-java-run-main)))
 
 (use-package format-all
-  :ensure
+  :straight t
   :config
   (setopt format-all-formatters
           '(("Emacs Lisp" emacs-lisp)

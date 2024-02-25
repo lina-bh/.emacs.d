@@ -29,7 +29,7 @@
   (use-short-answers t)
   (vc-follow-symlinks t)
   (warning-minimum-level :error)
-  :diminish eldoc-mode
+  :diminish (eldoc-mode)
   )
 ;; (set-face-attribute 'fringe nil :background (face-background 'default))
 

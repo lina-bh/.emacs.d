@@ -16,11 +16,11 @@
     nil))
 
 (use-package unidecode
-  :ensure
+  :straight t
   :defer t)
 
 (use-package org
-  :ensure
+  :straight t
   :pin gnu
   :defer t
   :functions (org-latex-compile
@@ -106,18 +106,17 @@
               ("C-c t" . #'org-babel-tangle)))
 
 (use-package htmlize
-  :ensure
+  :straight t
   :after (ox-html))
 
 ;; engravings give you no tactical advantage whatsoever.
 (use-package engrave-faces
-  :preface
-  (unless (package-installed-p 'engrave-faces)
-    (package-vc-install "https://github.com/tecosaur/engrave-faces"))
+  :straight (engrave-faces :type git :host github :repo "tecosaur/engrave-faces")
   :after (ox-latex)
   :custom (org-latex-src-block-backend 'engraved))
 
 (use-package phscroll
+  :disabled t
   :preface
   (unless (package-installed-p 'phscroll)
     (package-vc-install "https://github.com/misohena/phscroll"))

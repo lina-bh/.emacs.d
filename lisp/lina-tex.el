@@ -4,7 +4,7 @@
   (require 'bind-key))
 
 (use-package tex
-  :ensure auctex
+  :straight auctex
   :defer t
   :init
   (defun latex-word-count ()
