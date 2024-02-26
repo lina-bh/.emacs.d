@@ -43,10 +43,12 @@
 
 ;;; * tree sitter
 (use-package treesit
+  :demand t
   :init
   (defun lina-tree-sitter-repo-for (lang)
     (unless (stringp lang) (setq lang (symbol-name lang)))
     (concat "https://github.com/tree-sitter/tree-sitter-" lang))
+  
   (defun lina-setup-treesit (lang &optional orig-major-mode)
     (unless (assq lang treesit-language-source-alist)
       (error "don't know language %s" lang))

@@ -88,6 +88,7 @@
            '("beamer" "latex"))
      default-modes))
   :hook (org-mode . variable-pitch-mode)
+  :hook (org-mode . flyspell-mode)
   :hook (org-babel-after-execute . org-redisplay-inline-images)
   :bind (:map org-mode-map
               ("C-c p" . #'org-latex-export-to-pdf)

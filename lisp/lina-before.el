@@ -8,9 +8,8 @@
   :hook (emacs-lisp-mode . turn-on-auto-compile-mode))
 
 (use-package exec-path-from-shell
-  :if (eq system-type 'darwin)
   :straight t
-  :commands exec-path-from-shell-initialize
+  :if (eq system-type 'darwin)
   :custom (exec-path-from-shell-arguments '("-l"))
   :config (exec-path-from-shell-initialize))
 

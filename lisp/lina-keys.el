@@ -31,6 +31,7 @@
         ("C-u" . #'backward-kill-sentence)))
 
 (use-package which-key
+  :disabled t
   :straight t
   :custom (which-key-mode t)
   :diminish which-key-mode)

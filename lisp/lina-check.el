@@ -38,7 +38,6 @@
 	  (ispell-dictionary "british"))
 
 (use-package flyspell
-  :hook org-mode
   :bind (:map flyspell-mode-map
 	      ([mouse-3] . flyspell-correct-word))
   :config
