@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
-(eval-and-compile
-  (require 'lina-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
 
 (use-package savehist
   :custom (savehist-mode t))
@@ -14,7 +15,8 @@
   (bookmark-fringe-mark nil))
 
 (use-package orderless
-  :straight t
+  :ensure
+  :demand t
   :custom (completion-styles '(orderless basic)))
 
 (use-package icomplete
@@ -30,18 +32,18 @@
   :hook (icomplete-minibuffer-setup . lina-icomplete-minibuf-hook))
 
 (use-package marginalia
-  :straight t
+  :ensure
   :custom (marginalia-mode t))
 
 (use-package consult
-  :straight t
+  :ensure
   :custom
   (consult-async-split-style nil)
   (xref-show-xrefs-function #'consult-xref)
   :bind
   ("C-s" . consult-line)
   ("C-x b" . consult-buffer)
-  ("C-x r b" . consult-bookmark)
+  ("C-x p b" . consult-project-buffer)
   ("C-x p f" . consult-find)
   ("C-x p g" . consult-ripgrep))
 (use-package consult-org
@@ -56,27 +58,25 @@
   :bind ("M-g i" . consult-imenu))
 
 (use-package corfu
-  :straight t
+  :ensure
   :custom
   (corfu-quit-at-boundary nil)
   (global-corfu-mode t))
 
-(use-package embark-consult
-  :straight t)
+(use-package embark-consult :ensure :demand t)
 (use-package embark
-  :straight t
+  :ensure
   :after embark-consult
+  :init
+  (unbind-key "C-h" 'help-map)
   :custom
   (embark-indicators '(embark-minimal-indicator
                        embark-highlight-indicator
                        embark-isearch-highlight-indicator))
   (prefix-help-command #'embark-prefix-help-command)
-  :config
-  (unbind-key "C-h" 'help-map)
   :bind
   ("C-." . embark-act)
   ("M-." . embark-dwim)
   (:map minibuffer-local-map
         ("C-c" . embark-act)
         ("C-e" . embark-export)))
-

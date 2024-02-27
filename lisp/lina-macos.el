@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
-(eval-and-compile
-  (require 'lina-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
 
 (use-package emacs
   :if (eq system-type 'darwin)
@@ -16,5 +17,5 @@
   (tab-line ((((type ns)) (:family "Helvetica")))))
 
 (use-package dash-at-point
-  :straight t
-  :bind (("C-c d" . dash-at-point)))
+  :ensure
+  :bind ("C-c d" . dash-at-point))

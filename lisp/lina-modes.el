@@ -1,8 +1,8 @@
 ;; -*- lexical-binding: t; -*-
-(eval-and-compile
-  (require 'lina-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
 
-;;; * base hooks & modes
 (use-package display-line-numbers
   :custom
   (display-line-numbers-grow-only t)
@@ -27,7 +27,6 @@
   (prog-mode . show-paren-local-mode))
 
 (use-package comint
-  :defer t
   :bind (:map comint-mode-map
 	      ("<up>" . 'comint-previous-input)
 	      ("<down>" . 'comint-next-input)))
@@ -41,14 +40,22 @@
     (setq-local cursor-type (if buffer-face-mode 'bar t)))
   :hook (buffer-face-mode . lina-variable-pitch-mode-hook))
 
-;;; * tree sitter
 (use-package treesit
   :demand t
-  :init
+  :config
   (defun lina-tree-sitter-repo-for (lang)
     (unless (stringp lang) (setq lang (symbol-name lang)))
     (concat "https://github.com/tree-sitter/tree-sitter-" lang))
-  
+
+  (setq treesit-language-source-alist
+        `(,@(mapcar (lambda (lang)
+                      (list lang (lina-tree-sitter-repo-for lang)))
+                    '(java bash))
+          (typescript ,(lina-tree-sitter-repo-for "typescript")
+                      "master" "typescript/src")
+          (tsx ,(lina-tree-sitter-repo-for "typescript")
+               "master" "tsx/src")))
+
   (defun lina-setup-treesit (lang &optional orig-major-mode)
     (unless (assq lang treesit-language-source-alist)
       (error "don't know language %s" lang))
@@ -63,35 +70,13 @@
              (fboundp orig-major-mode))
         (setf (alist-get orig-major-mode major-mode-remap-alist)
 	      ts-major-mode))))
-  :config
-  (setq treesit-language-source-alist
-        `(,@(mapcar (lambda (lang)
-                      (list lang (lina-tree-sitter-repo-for lang)))
-                    '(java bash))
-          (typescript ,(lina-tree-sitter-repo-for "typescript")
-                      "master" "typescript/src")
-          (tsx ,(lina-tree-sitter-repo-for "typescript")
-               "master" "tsx/src")))
+
   (mapc #'lina-setup-treesit '(java typescript tsx))
   (lina-setup-treesit 'bash 'sh-mode)
   :mode ("\\.ts\\'" . tsx-ts-mode))
 
-;;; * language-specific
-
-;;; ** Emacs Lisp
-(use-package elisp-mode
-  :init
-  (defun lina-elisp-mode-hook ()
-    (setq-local outline-regexp (rx (>= 3 ";") space (one-or-more "*")))
-    (let ((auto-insert-query nil))
-      (auto-insert)))
-  :hook (emacs-lisp-mode . lina-elisp-mode-hook)
-  :hook (emacs-lisp-mode . outline-minor-mode)
-  :bind (:map emacs-lisp-mode-map
-	      ("C-c m e" . pp-macroexpand-last-sexp)
-	      ("C-c C-c" . eval-buffer)))
-
 (use-package autoinsert
+  :demand t
   :config
   (setcdr
    (seq-find (lambda (el)
@@ -103,8 +88,17 @@
      (insert ";; -*- lexical-binding: t; -*-\n")
      (setq-local lexical-binding t))))
 
+(use-package elisp-mode
+  :init
+  (defun lina-elisp-mode-hook ()
+    (let ((auto-insert-query nil))
+      (auto-insert)))
+  :hook (emacs-lisp-mode . lina-elisp-mode-hook)
+  :bind (:map emacs-lisp-mode-map
+	      ("C-c C-c" . eval-buffer)
+              ("C-c C-p" . pp-macroexpand-last-sexp)))
+
 (use-package ielm
-  :defer t
   :commands ielm-return
   :init
   (defun ielm-C-c ()
@@ -113,16 +107,11 @@
     (ielm-return))
   :bind (:map ielm-map ("C-c C-c" . #'ielm-C-c)))
 
-;;; ** assorted
-;; TODO fix C mode
-
 (use-package sh-script
-  :defer t
   :custom (sh-basic-offset 2)
   :hook (sh-base-mode . flymake-mode))
 
 (use-package asm-mode
-  :defer t
   :init
   (defun lina-asm-mode-hook ()
     (setq-local tab-width 2)
@@ -138,7 +127,6 @@
   :hook (makefile-mode . lina-makefile-hook))
 
 (use-package js
-  :defer t
   :custom (js-indent-level 2))
 
 (use-package sql

@@ -1,5 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 (defvar use-package-enable-imenu-support t)
+(defvar use-package-always-defer t)
 (setq load-prefer-newer t
       package-enable-at-startup nil)
 

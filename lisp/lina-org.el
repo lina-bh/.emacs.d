@@ -1,24 +1,22 @@
 ;; -*- lexical-binding: t; -*-
+(eval-when-compile
+  (require 'use-package))
 (eval-and-compile
-  (require 'lina-package))
-
-(defun lina-standard-value (sym)
-  (eval (car (get sym 'standard-value))))
+  (require 'vc-use-package))
+(require 'bind-key)
 
 (use-package unidecode
-  :straight t
-  :defer t)
+  :ensure
+  :demand t)
 
 (use-package org
-  :straight (:source gnu-elpa-mirror)
-  :defer t
-  :functions (org-latex-compile
-              org-latex-export-section-to-pdf
-              org-export-to-file
-              org-find-exact-headline-in-buffer
-              org-get-outline-path)
+  :functions
+  org-latex-compile
+  org-latex-export-section-to-pdf
+  org-export-to-file
+  org-find-exact-headline-in-buffer
+  org-get-outline-path
   :init
-  (require 'unidecode)
   (defun org-latex-export-section-to-pdf ()
     (interactive)
     (if-let ((heading (nth 0 (org-get-outline-path t)))
@@ -30,12 +28,11 @@
         (save-excursion
           (goto-char position)
           (org-export-to-file
-              'latex outfile nil t nil nil nil #'org-latex-compile))
+           'latex outfile nil t nil nil nil #'org-latex-compile))
       (funcall-interactively #'org-latex-export-to-pdf)))
   :custom
   (org-adapt-indentation nil)
   (org-link-descriptive nil)
-  (org-startup-folded t)
   (org-export-backends '(html latex))
   (org-modules '(ox-latex))
   (org-babel-load-languages '((emacs-lisp . t)
@@ -45,40 +42,35 @@
                               (latex . t)))
   (org-src-preserve-indentation t)
   (org-confirm-babel-evaluate nil)
-  (org-refile-targets '((nil
-                         :maxlevel . 2)))
+  (org-refile-targets '((nil :maxlevel . 2)))
   (org-html-postamble nil)
   (org-latex-classes
    '(("article" "\\documentclass[a4paper,11pt]{article}"
-     ("\\section{%s}" . "\\section*{%s}")
-     ("\\subsection{%s}" . "\\subsection*{%s}")
-     ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-     ("\\paragraph{%s}" . "\\paragraph*{%s}")
-     ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+      ("\\section{%s}" . "\\section*{%s}")
+      ("\\subsection{%s}" . "\\subsection*{%s}")
+      ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+      ("\\paragraph{%s}" . "\\paragraph*{%s}")
+      ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
   (org-latex-default-packages-alist
    '(("AUTO" "inputenc" t
       ("pdflatex"))
      ("T1" "fontenc" t
       ("pdflatex"))
      ("" "graphicx" t)
-     ;; ("" "longtable" nil)
-     ;; ("" "wrapfig" nil)
-     ;; ("" "rotating" nil)
-     ;; ("normalem" "ulem" t)
      ("" "amsmath" t)
-     ;; ("" "amssymb" t)
-     ;; ("" "capt-of" nil)
-     ("bookmarks=false,colorlinks=true,urlcolor=blue,linkcolor=,citecolor=" "hyperref" nil)))
+     ("bookmarks=false,colorlinks=true,urlcolor=blue,linkcolor=,citecolor="
+      "hyperref" nil)))
   (org-latex-packages-alist '(("margin=1in" "geometry")
                               ("" "lmodern")))
   (org-latex-remove-logfiles nil)
   (org-latex-pdf-process
-   '("%latex -interaction=nonstopmode -output-directory=%o %f"
-     "%latex -interaction=nonstopmode -output-directory=%o -draftmode %f"))
+   (nreverse
+    '("%latex -interaction=nonstopmode -output-directory=%o -draftmode %f"
+      "%latex -interaction=nonstopmode -output-directory=%o %f")))
   :config
   (setopt
    org-src-lang-modes
-   (let* ((default-modes (lina-standard-value 'org-src-lang-modes))
+   (let* ((default-modes (eval (car (get 'org-src-lang-modes 'standard-value))))
           (make-function (lambda (value)
                            (lambda (key)
                              (setf (alist-get key default-modes) value)))))
@@ -96,20 +88,20 @@
               ("C-c t" . #'org-babel-tangle)))
 
 (use-package htmlize
-  :straight t
-  :after (ox-html))
+  :ensure
+  :after (ox-html)
+  :demand t)
 
 ;; engravings give you no tactical advantage whatsoever.
 (use-package engrave-faces
-  :straight (engrave-faces :type git :host github :repo "tecosaur/engrave-faces")
+  :pin gnu-devel
+  :ensure
+  :demand t
   :after (ox-latex)
   :custom (org-latex-src-block-backend 'engraved))
 
 (use-package phscroll
-  :disabled t
-  :preface
-  (unless (package-installed-p 'phscroll)
-    (package-vc-install "https://github.com/misohena/phscroll"))
+  :vc (:fetcher github :repo misohena/phscroll)
   :after (org))
 
 (use-package org-wc

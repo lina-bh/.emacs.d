@@ -1,10 +1,10 @@
 ;; -*- lexical-binding: t; -*-
-(eval-and-compile
-  (require 'lina-package))
+(eval-when-compile
+  (require 'use-package))
+(require 'bind-key)
 
 (use-package tex
-  :straight auctex
-  :defer t
+  :ensure auctex
   :init
   (defun latex-word-count ()
     (interactive)
@@ -21,8 +21,8 @@
     (setopt TeX-view-program-selection '((output-pdf "Skim")
                                          (output-dvi "open")
                                          (output-html "open"))))
-  :hook (TeX-mode . buffer-face-mode)
   :hook (TeX-mode . show-paren-local-mode)
+  :hook (TeX-mode . variable-pitch-mode)
   :bind (:map TeX-mode-map
 	      ("M-=" . latex-word-count)))
 
