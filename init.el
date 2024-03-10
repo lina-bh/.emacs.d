@@ -24,12 +24,10 @@
 ;;   :init (benchmark-init/activate)
 ;;   :hook (emacs-startup . benchmark-init/deactivate))
 
-(use-package diminish
-  :ensure)
-
-(when (and (< emacs-major-version 30)
-           (not (package-installed-p 'vc-use-package)))
-  (package-vc-install "https://github.com/slotThe/vc-use-package"))
+;; (when (and (< emacs-major-version 30)
+;; 	   (executable-find "git")
+;;            (not (package-installed-p 'vc-use-package)))
+;;   (package-vc-install "https://github.com/slotThe/vc-use-package"))
 
 (add-to-list 'load-path (locate-user-emacs-file "lisp/"))
 
@@ -42,6 +40,7 @@
 (load "lina-tex")
 (load "lina-poly")
 (pcase system-type
+  ('windows-nt (load "lina-w32"))
   ('darwin (load "lina-macos")))
 
 (defun delete-visited-file ()

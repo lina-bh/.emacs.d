@@ -47,7 +47,7 @@
 ;;         ("DEL" . #'vertico-directory-delete-char)))
 
 (use-package marginalia
-  :ensure
+  ;; :ensure
   :custom (marginalia-mode t))
 
 (use-package consult
@@ -77,7 +77,7 @@
   ("C-x p i" . consult-imenu-multi))
 
 (use-package corfu
-  :ensure
+  ;; :ensure
   :custom
   ;; (corfu-quit-no-match nil)
   (corfu-quit-at-boundary nil)

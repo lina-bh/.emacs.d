@@ -20,7 +20,7 @@
               ("C-c C-c" . recompile)))
 
 (use-package tex
-  :ensure auctex
+  ;; :ensure auctex
   :custom
   (TeX-parse-self t)
   (TeX-master nil)

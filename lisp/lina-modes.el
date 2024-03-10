@@ -73,8 +73,9 @@
 	      ("C-c C-c" . eval-buffer)
               ("C-c C-p" . pp-macroexpand-last-sexp)))
 
-(use-package paredit
-  :hook (emacs-lisp-mode . paredit-mode))
+;; TODO why is this blowing up?
+;; (use-package paredit
+;;   :hook (emacs-lisp-mode . paredit-mode))
 
 (use-package ielm
   :commands ielm-return ielm-C-c
@@ -89,22 +90,25 @@
   :init (defvar treesit-language-source-alist nil))
 
 (use-package java-ts-mode
+  :if (treesit-available-p)
   :after treesit
-  :init
+  :config
   (push `(java ,(github-tree-sitter "java")) treesit-language-source-alist)
   (when (treesit-language-available-p 'java)
     (push '(java-mode . java-ts-mode) major-mode-remap-alist)))
 
 (use-package rust-ts-mode
+  :if (treesit-available-p)
   :after treesit
-  :init
+  :config
   (push `(rust ,(github-tree-sitter "rust")) treesit-language-source-alist))
 
 (use-package sh-script
   :config (setq-default sh-basic-offset 2))
 (use-package sh-script
+  :if (treesit-available-p)
   :after treesit
-  :init
+  :config
   (push `(bash ,(github-tree-sitter "bash")) treesit-language-source-alist)
   (when (treesit-language-available-p 'bash)
     (push '(sh-mode . bash-ts-mode) major-mode-remap-alist))
@@ -113,8 +117,9 @@
 (use-package js
   :config (setq-default js-indent-level 2))
 (use-package typescript-ts-mode
+  :if (treesit-available-p)
   :after treesit
-  :init
+  :config
   (setq treesit-language-source-alist
         (append `((typescript ,(github-tree-sitter "typescript")  "master"
                               "typescript/src")
@@ -123,8 +128,9 @@
   :mode ("\\.ts\\'" . typescript-ts-mode))
 
 (use-package yaml-ts-mode
+  :if (treesit-available-p)
   :after treesit
-  :init
+  :config
   (push `(yaml ,(github-tree-sitter "yaml")) treesit-language-source-alist)
   :hook (yaml-ts-mode . display-line-numbers-mode)
   :mode ("\\.yaml\\'" . yaml-ts-mode))

@@ -35,7 +35,7 @@
 	      ("C-c j r" . #'eglot-java-run-main)))
 
 (use-package format-all
-  :ensure
+  ;; :ensure
   :config
   (setopt format-all-formatters
           '(("Emacs Lisp" emacs-lisp)

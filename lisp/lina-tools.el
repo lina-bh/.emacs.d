@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 (use-package magit
-  :ensure)
+  ;;:ensure
+  )
 ;; :custom
 ;; (magit-auto-revert-mode nil)
 ;; (global-auto-revert-mode t)
@@ -12,16 +13,18 @@
   :custom (magit-auto-revert-mode nil))
 
 (use-package vterm
-  :ensure
-  :custom ((vterm-always-compile-module t)
-           (vterm-timer-delay 0.001)
-	   (vterm-kill-buffer-on-exit nil)))
+  :if (not (eq system-type 'windows-nt))
+  ;; :ensure
+  :custom
+  ;; (vterm-always-compile-module t)
+  (vterm-timer-delay 0.001)
+  (vterm-kill-buffer-on-exit nil))
 
 (use-package dired
   :custom (delete-by-moving-to-trash t)
   :hook (dired-mode . dired-hide-details-mode))
 (use-package dired-single
-  :ensure
+  ;; :ensure
   :after dired
   :bind
   ("C-x C-d" . dired)

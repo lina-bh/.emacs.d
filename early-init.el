@@ -2,7 +2,7 @@
 (defconst lina-gc-bytes (* 64 1024 1024))
 (setq load-prefer-newer t
       gc-cons-threshold most-positive-fixnum
-      vc-handled-backends nil
+      vc-handled-backends '(Git)
       use-package-enable-imenu-support t
       force-load-messages t)
 (when emacs-repository-version
@@ -23,7 +23,8 @@
 ;; https://github.com/doomemacs/doomemacs/blob/master/lisp/doom.el#L466
 (put 'mode-line-format 'lina-saved mode-line-format)
 (setq mode-line-format nil
-      inhibit-message t)
+      ;; inhibit-message t
+      )
 
 (defun lina-after-init (&rest _)
   (setq gc-cons-threshold lina-gc-bytes
@@ -35,7 +36,7 @@
 
 (modify-all-frames-parameters
  `((tty-color-mode . -1)
-   (height . 57)
+   (height . 48)
    (width . 99)
    (tool-bar-lines . 0)
    (menu-bar-lines . ,(if (and window-system

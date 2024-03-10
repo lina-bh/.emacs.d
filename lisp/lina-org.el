@@ -1,9 +1,9 @@
 ;; -*- lexical-binding: t; -*-
 (eval-when-compile
   (require 'use-package))
-(when (< emacs-major-version 30)
-  (eval-and-compile
-    (require 'vc-use-package)))
+;; (eval-and-compile
+;;   (when (and (executable-find "git") (< emacs-major-version 30))
+;;     (require 'vc-use-package)))
 (require 'bind-key)
 
 (use-package unidecode
@@ -92,7 +92,7 @@
               ("C-c s p" . #'org-latex-export-section-to-pdf)))
 
 (use-package htmlize
-  :ensure
+  ;; :ensure
   :after ox-html
   :demand t)
 
@@ -106,7 +106,9 @@
 ;;   :custom (org-latex-src-block-backend 'engraved))
 
 (use-package phscroll
-  :vc (:fetcher github :repo misohena/phscroll)
+  :disabled t
+  ;; TODO just use `:load-path'
+  ;; :vc (:fetcher github :repo misohena/phscroll)
   :after (org))
 
 ;; (use-package org-wc
