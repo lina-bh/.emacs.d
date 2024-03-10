@@ -3,6 +3,13 @@
   (require 'use-package))
 (require 'bind-key)
 
+;; (defun treesit-ensure (lang)
+;;   (unless (treesit-language-available-p lang)
+;;     (treesit-install-language-grammar lang)))
+
+(defun github-tree-sitter (lang)
+  (concat "https://github.com/tree-sitter/tree-sitter-" lang))
+
 (use-package display-line-numbers
   :custom
   (display-line-numbers-grow-only t)
@@ -27,6 +34,7 @@
   (prog-mode . show-paren-local-mode))
 
 (use-package comint
+  :commands comint-skip-input comint-next-input comint-previous-input
   :bind (:map comint-mode-map
 	      ("<up>" . 'comint-previous-input)
 	      ("<down>" . 'comint-next-input)))
@@ -40,43 +48,8 @@
     (setq-local cursor-type (if buffer-face-mode 'bar t)))
   :hook (buffer-face-mode . lina-variable-pitch-mode-hook))
 
-(use-package treesit
-  :demand t
-  :config
-  (defun lina-tree-sitter-repo-for (lang)
-    (unless (stringp lang) (setq lang (symbol-name lang)))
-    (concat "https://github.com/tree-sitter/tree-sitter-" lang))
-
-  (setq treesit-language-source-alist
-        `(,@(mapcar (lambda (lang)
-                      (list lang (lina-tree-sitter-repo-for lang)))
-                    '(java bash))
-          (typescript ,(lina-tree-sitter-repo-for "typescript")
-                      "master" "typescript/src")
-          (tsx ,(lina-tree-sitter-repo-for "typescript")
-               "master" "tsx/src")))
-
-  (defun lina-setup-treesit (lang &optional orig-major-mode)
-    (unless (assq lang treesit-language-source-alist)
-      (error "don't know language %s" lang))
-    (unless (treesit-language-available-p lang)
-      (treesit-install-language-grammar lang))
-    (let* ((lang-name (symbol-name lang))
-	   (orig-major-mode (or orig-major-mode
-			        (intern (format "%s-mode" lang-name))))
-	   (ts-major-mode (intern (format "%s-ts-mode" lang-name))))
-      (when (and
-             (fboundp ts-major-mode)
-             (fboundp orig-major-mode))
-        (setf (alist-get orig-major-mode major-mode-remap-alist)
-	      ts-major-mode))))
-
-  (mapc #'lina-setup-treesit '(java typescript tsx))
-  (lina-setup-treesit 'bash 'sh-mode)
-  :mode ("\\.ts\\'" . tsx-ts-mode))
-
 (use-package autoinsert
-  :demand t
+  :custom (auto-insert-directory (locate-user-emacs-file "auto-insert/"))
   :config
   (setcdr
    (seq-find (lambda (el)
@@ -91,6 +64,8 @@
 (use-package elisp-mode
   :init
   (defun lina-elisp-mode-hook ()
+    (setq-local outline-regexp (rx (>= 3 ";") space (one-or-more "*")))
+    (require 'autoinsert)
     (let ((auto-insert-query nil))
       (auto-insert)))
   :hook (emacs-lisp-mode . lina-elisp-mode-hook)
@@ -98,18 +73,61 @@
 	      ("C-c C-c" . eval-buffer)
               ("C-c C-p" . pp-macroexpand-last-sexp)))
 
+(use-package paredit
+  :hook (emacs-lisp-mode . paredit-mode))
+
 (use-package ielm
-  :commands ielm-return
+  :commands ielm-return ielm-C-c
   :init
   (defun ielm-C-c ()
     (interactive)
     (comint-skip-input)
     (ielm-return))
-  :bind (:map ielm-map ("C-c C-c" . #'ielm-C-c)))
+  :bind (:map ielm-map ("C-c C-c" . ielm-C-c)))
+
+(use-package treesit
+  :init (defvar treesit-language-source-alist nil))
+
+(use-package java-ts-mode
+  :after treesit
+  :init
+  (push `(java ,(github-tree-sitter "java")) treesit-language-source-alist)
+  (when (treesit-language-available-p 'java)
+    (push '(java-mode . java-ts-mode) major-mode-remap-alist)))
+
+(use-package rust-ts-mode
+  :after treesit
+  :init
+  (push `(rust ,(github-tree-sitter "rust")) treesit-language-source-alist))
 
 (use-package sh-script
-  :custom (sh-basic-offset 2)
+  :config (setq-default sh-basic-offset 2))
+(use-package sh-script
+  :after treesit
+  :init
+  (push `(bash ,(github-tree-sitter "bash")) treesit-language-source-alist)
+  (when (treesit-language-available-p 'bash)
+    (push '(sh-mode . bash-ts-mode) major-mode-remap-alist))
   :hook (sh-base-mode . flymake-mode))
+
+(use-package js
+  :config (setq-default js-indent-level 2))
+(use-package typescript-ts-mode
+  :after treesit
+  :init
+  (setq treesit-language-source-alist
+        (append `((typescript ,(github-tree-sitter "typescript")  "master"
+                              "typescript/src")
+                  (tsx ,(github-tree-sitter "typescript") "master" "tsx/src"))
+                treesit-language-source-alist))
+  :mode ("\\.ts\\'" . typescript-ts-mode))
+
+(use-package yaml-ts-mode
+  :after treesit
+  :init
+  (push `(yaml ,(github-tree-sitter "yaml")) treesit-language-source-alist)
+  :hook (yaml-ts-mode . display-line-numbers-mode)
+  :mode ("\\.yaml\\'" . yaml-ts-mode))
 
 (use-package asm-mode
   :init
@@ -126,35 +144,82 @@
     (setq-local indent-tabs-mode t))
   :hook (makefile-mode . lina-makefile-hook))
 
-(use-package js
-  :custom (js-indent-level 2))
+(use-package ess-site
+  ;; :ensure ess
+  :init (setq ess-ask-for-ess-directory nil
+              ess-use-flymake nil))
 
-(use-package sql
-  :defer t
-  :custom (sql-product 'sqlite))
-
-(use-package yaml-mode
-  :disabled t
-  :hook (yaml-mode . display-line-numbers-mode))
+;; make this dir-local instead.
+;; (use-package sql
+;;   :custom (sql-product 'sqlite))
 
 (use-package outline
-  :custom
-  (outline-minor-mode-cycle t)
-  (outline-blank-line t)
-  (outline-minor-mode-prefix (kbd "C-c C-o"))
-  (outline-minor-mode-use-buttons 'in-margins))
+  :config
+  (setq-default outline-minor-mode-cycle t
+                outline-blank-line t
+                outline-minor-mode-prefix (kbd "C-c C-o")
+                outline-minor-mode-use-buttons 'in-margins))
 
-;;; ** unused
+;; (use-package racket-mode
+;;   :disabled t
+;;   :bind (:map racket-mode-map
+;; 	      ("C-c C-c" . racket-run)))
 
-(use-package racket-mode
-  :disabled t
-  :bind (:map racket-mode-map
-	      ("C-c C-c" . racket-run)))
+;; (use-package plantuml-mode
+;;   :disabled t
+;;   :load-path "lisp/plantuml-mode"
+;;   :custom (plantuml-default-exec-mode 'jar)
+;;   :config (add-to-list 'plantuml-jar-args "-tpng"))
 
-(use-package plantuml-mode
-  :disabled t
-  :load-path "lisp/plantuml-mode"
-  :custom (plantuml-default-exec-mode 'jar)
-  :config (add-to-list 'plantuml-jar-args "-tpng"))
+;; (defun lina/bison-mode-hook ()
+;;   (electric-indent-local-mode 0))
+;; (defun lina/insert-tab ()
+;;   (interactive)
+;;   (insert-tab))
+;; (use-package bison-mode
+;;   :disabled t
+;;   :hook ((bison-mode . lina/bison-mode-hook)
+;; 	 (flex-mode . lina/bison-mode-hook))
+;;   :bind (:map flex-mode-map
+;; 	      ("<tab>" . #'lina/insert-tab))
+;;   :bind	(:map bison-mode-map
+;; 	      ("<tab>" . #'lina/insert-tab)))
 
-;; TODO bison-mode fix tab properly
+;; (defun restart-python ()
+;;   (interactive)
+;;   (let ((buffer (get-buffer "*Python*"))
+;; 	(kill-buffer-query-functions nil))
+;;     (when buffer
+;;       (kill-buffer buffer)))
+;;   (call-interactively #'run-python))
+
+;; (defun restart-python-send-current ()
+;;   (interactive)
+;;   (restart-python)
+;;   (sleep-for 0 1)
+;;   (save-some-buffers t
+;; 		     (lambda ()
+;; 		       (string= (file-name-extension buffer-file-name) "py")))
+;;   (call-interactively 'python-shell-send-file))
+
+;; (defun python-tab ()
+;;   (interactive)
+;;   (let ((initial-point (point)))
+;;     (if (use-region-p)
+;; 	(save-excursion
+;; 	  (move-to-column 0)
+;; 	  (call-interactively 'python-indent-shift-right))
+;;       (call-interactively 'python-indent-shift-right))
+;;     (when (= (point) initial-point)
+;;       (call-interactively 'indent-for-tab-command))
+;;     (when (= (point) initial-point)
+;;       (indent-line-to python-indent-offset))))
+
+;; (use-package python
+;;   :defer t
+;;   :custom ((python-shell-interpreter-args "-i -q"))
+;;   :bind ((:map python-mode-map
+;; 	       ("C-c C-l" . 'restart-python-send-current)
+;; 	       ;; ("<tab>" . 'python-tab)
+;; 	       ;; ("<backtab>" . 'python-indent-shift-left))
+;; 	       )))

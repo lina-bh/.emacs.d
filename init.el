@@ -1,45 +1,48 @@
 ;; -*- lexical-binding: t; -*-
 (eval-when-compile
   (require 'use-package))
+(setq use-package-always-defer t)
 
-(package-initialize)
-(setopt package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-                           ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-                           ("melpa" . "https://melpa.org/packages/")
-                           ("gnu-devel" . "https://elpa.gnu.org/devel/"))
-        package-priorities '(("gnu-devel" . -1))
-	package-native-compile t)
+(setq inhibit-message-regexps '("^Loading "))
+(push #'inhibit-message set-message-functions)
 
 (setq custom-file (locate-user-emacs-file "custom.el"))
-(load custom-file t)
+(load custom-file t t t t)
+(load (locate-user-emacs-file "path.el") t nil t t)
 
-(use-package auto-compile
-  :ensure
-  :demand t
-  :custom (auto-compile-on-load-mode t)
-  :hook (emacs-lisp-mode . turn-on-auto-compile-mode))
+(use-package package
+  :custom
+  (package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+                      ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                      ("melpa" . "https://melpa.org/packages/")
+                      ("gnu-devel" . "https://elpa.gnu.org/devel/")))
+  (package-priorities '(("gnu-devel" . -1))))
+(use-package bind-key)
 
-(use-package exec-path-from-shell
-  :if (eq system-type 'darwin)
-  :ensure
-  :demand t
-  :custom (exec-path-from-shell-arguments '("-l"))
-  :config (exec-path-from-shell-initialize))
+;; (use-package benchmark-init
+;;   :disabled t
+;;   :init (benchmark-init/activate)
+;;   :hook (emacs-startup . benchmark-init/deactivate))
 
 (use-package diminish
-  :ensure
-  :demand t)
+  :ensure)
 
-(unless (package-installed-p 'vc-use-package)
+(when (and (< emacs-major-version 30)
+           (not (package-installed-p 'vc-use-package)))
   (package-vc-install "https://github.com/slotThe/vc-use-package"))
 
 (add-to-list 'load-path (locate-user-emacs-file "lisp/"))
+
 (load "lina-core")
 (load "lina-modes")
 (load "lina-compl")
 (load "lina-check")
+(load "lina-tools")
 (load "lina-org")
 (load "lina-tex")
+(load "lina-poly")
+(pcase system-type
+  ('darwin (load "lina-macos")))
 
 (defun delete-visited-file ()
   "Delete the file in the current buffer."
@@ -52,38 +55,18 @@
           (kill-buffer buffer))
       (message "Buffer not visiting any file"))))
 
-(use-package magit
-  :ensure
-  :custom
-  (magit-auto-revert-mode nil)
-  (global-auto-revert-mode t)
-  :diminish auto-revert-mode)
+;; (use-package auto-compile
+;;   :disabled t
+;;   :ensure
+;;   :demand t
+;;   :custom (auto-compile-on-load-mode t)
+;;   ;; :hook (emacs-lisp-mode . turn-on-auto-compile-mode)
+;;   )
 
-(use-package vterm
-  :ensure
-  :custom ((vterm-always-compile-module t)
-           (vterm-timer-delay 0.001)
-	   (vterm-kill-buffer-on-exit nil)))
-
-(use-package dired
-  :custom (delete-by-moving-to-trash t)
-  :hook (dired-mode . dired-hide-details-mode))
-(use-package dired-single
-  :after (dired)
-  :bind (:map dired-mode-map
-	      ([remap dired-find-file]
-	       .
-	       dired-single-buffer)
-	      ([remap dired-mouse-find-file-other-window]
-	       .
-	       dired-single-buffer-mouse)
-	      ([remap dired-up-directory]
-	       .
-	       dired-single-up-directory)))
-
-(use-package ess-site
-  :ensure ess)
-
-(pcase system-type
-  ;; ('windows-nt (load "lina-w32"))
-  ('darwin (load "lina-macos")))
+;; (use-package undo-tree
+;;   :disabled t
+;;   :ensure
+;;   :diminish undo-tree-mode
+;;   :custom
+;;   (undo-tree-auto-save-history nil)
+;;   (global-undo-tree-mode t))

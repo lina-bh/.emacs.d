@@ -1,8 +1,9 @@
 /*
 !/.git*
-!/*.el
-/custom.el
+!/init.el
+!/early-init.el
 !/Makefile
+!/aspell.cmd
 !/lisp/
 /lisp/**/*
 !/lisp/**/*.el
