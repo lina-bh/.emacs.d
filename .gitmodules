@@ -1,0 +1,3 @@
+[submodule "lisp/keepassxc.el"]
+	path = lisp/keepassxc.el
+	url = git@github.com:lina-bh/keepassxc.el

@@ -1,52 +1,40 @@
 ;; -*- lexical-binding: t; -*-
 (use-package polymode
-  :config
-  (setq polymode-move-these-minor-modes-from-old-buffer '(visual-line-mode
-                                                          tab-line-mode)))
-
-(defun lina-turn-off-display-fill-indicator-mode (type)
-  (display-fill-column-indicator-mode -1))
+  :init
+  (defun lina-poly-inner-hook ()
+    (show-paren-local-mode -1)
+    (display-fill-column-indicator-mode -1))
+  :custom
+  (polymode-move-these-minor-modes-from-old-buffer '(visual-line-mode
+                                                     tab-line-mode))
+  :hook (polymode-init-inner . lina-poly-inner-hook))
 
 (use-package poly-noweb
-  :after polymode
   :init
-  (defun lina-poly-noweb-electric-<< (arg)
-    "Auto insert noweb chunk if at bol followed by white space.
-If given an numerical argument, it simply insert `<'. Otherwise,
-if at the beginning of a line in a host chunk insert \"<<>>=\", a
-closing \"@\" and a newline if necessary."
-    (interactive "P")
-    (if (or arg (car (pm-innermost-span)))
-        (self-insert-command (if (numberp arg) arg 1))
-      (if (not (looking-back "^[ \t]*<"))
-          (self-insert-command 1)
-        (insert "<")
-        (save-excursion
-          (insert ">>=\n@ ")
-          (unless (looking-at "\\s *$")
-            (newline))))))
+  (defun lina-poly-minted-mode-matcher ()
+    (pcase (buffer-substring-no-properties (point) (- (pos-eol) 1))
+      ("java" 'java-ts-mode)
+      ("rust" 'rust-ts-mode)
+      (_ 'poly-fallback-mode)))
   :config
-  (when (package-installed-p 'auctex)
-    (oset poly-latex-hostmode mode 'LaTeX-mode))
+  (oset poly-latex-hostmode mode 'LaTeX-mode)
   (oset poly-noweb-innermode adjust-face '(:inherit fixed-pitch))
-  (object-add-to-list poly-noweb-innermode 'init-functions
-                      #'lina-turn-off-display-fill-indicator-mode t)
-  (advice-add #'poly-noweb-electric-< :override #'self-insert-command))
+  (oset poly-noweb-polymode keylist nil)
 
-;; (use-package polymode
-;;   :config
-;;   (eieio-oset-default pm-inner-chunkmode :adjust-face nil)
-;;   (define-hostmode poly-python-hostmode
-;;     :mode 'python-mode)
-;;   (define-innermode poly-sql-innermode
-;;     :mode 'sql-mode
-;;     :head-matcher (rx
-;; 		   (= 3 (char "\"'"))
-;; 		   (zero-or-more (any "\t\n "))
-;; 		   (or "SELECT" "INSERT" "UPDATE" "DELETE" "CREATE"))
-;;     :tail-matcher (rx (= 3 (char "\"'")))
-;;     :head-mode 'host
-;;     :tail-mode 'host)
-;;   (define-polymode poly-python-sql-mode
-;;     :hostmode 'poly-python-hostmode
-;;     :innermodes '(poly-sql-innermode)))
+  (define-innermode lina-poly-pweave-innermode poly-noweb-innermode
+    :mode 'python-mode)
+  (define-polymode lina-poly-pweave-mode poly-noweb-mode
+    :lighter " PM-Pw"
+    :innermodes '(lina-poly-pweave-innermode))
+
+  (define-auto-innermode lina-poly-minted-auto-innermode nil "Not documented."
+    :adjust-face '(:inherit fixed-pitch)
+    :head-matcher (cons (rx "\\begin{minted}{" (group (+? nonl)) "}\n") 1)
+    :tail-matcher "\\\\end{minted}"
+    :mode-matcher #'lina-poly-minted-mode-matcher
+    :head-mode 'host
+    :tail-mode 'host)
+  (define-polymode lina-poly-minted-mode poly-latex-root-polymode
+    :hostmode 'poly-noweb-latex-hostmode
+    :innermodes '(lina-poly-minted-auto-innermode))
+  )

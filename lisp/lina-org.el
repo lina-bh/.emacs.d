@@ -1,62 +1,40 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'use-package))
-;; (eval-and-compile
-;;   (when (and (executable-find "git") (< emacs-major-version 30))
-;;     (require 'vc-use-package)))
-(require 'bind-key)
-
-(use-package unidecode
-  :ensure
-  :autoload unidecode-sanitize)
-
 (use-package org
-  :demand t
   :custom
   (org-adapt-indentation nil)
   (org-link-descriptive nil)
   (org-export-backends '(html latex))
-  (org-modules '(ox-latex))
   (org-babel-load-languages '((emacs-lisp . t)
-			      (python . t)
-			      (R . t)
-			      (shell . t)
+                              (python . t)
+                              (R . t)
+                              (shell . t)
                               (latex . t)))
+  (org-babel-python-command "python3")
   (org-confirm-babel-evaluate nil)
   (org-refile-targets '((nil :maxlevel . 2)))
   (org-html-postamble nil)
   (org-startup-folded 'show2levels)
-  :hook (org-mode . variable-pitch-mode)
-  :hook (org-mode . flyspell-mode)
-  :hook (org-babel-after-execute . org-redisplay-inline-images)
-  :bind (:map org-mode-map
-              ("C-c t" . #'org-babel-tangle)))
-(use-package org-src
-  :after org
-  :custom
+  (org-format-latex-options
+   (list :foreground 'default
+         :background "Transparent"
+         :scale 2.0
+         :html-foreground "Black"
+         :html-background "Transparent"
+         :html-scale 1.0
+         :matchers '("begin" "$1" "$" "$$" "\\(" "\\[")))
+  (org-src-lang-modes `(,@(and (fboundp #'LaTeX-mode)
+                               (mapcar (lambda (lang)
+                                         (cons lang 'LaTeX))
+                                       '("latex" "beamer")))
+                        ,@(and (treesit-language-available-p 'bash)
+                               (mapcar (lambda (lang)
+                                         (cons lang 'bash-ts))
+                                       '("sh" "shell" "bash")))))
   (org-src-preserve-indentation t)
-  (org-src-lang-modes '(("latex" . LaTeX)
-                        ("beamer" . LaTeX)
-                        ("sh" . bash-ts)
-                        ("shell" . bash-ts)
-                        ("bash" . bash-ts))))
-(use-package ox-latex
-  :after ox org
-  :init
-  (defun org-latex-export-section-to-pdf ()
-    (interactive)
-    (if-let ((heading (nth 0 (org-get-outline-path t)))
-             (position (org-find-exact-headline-in-buffer
-                        heading
-                        (current-buffer)
-                        t))
-             (outfile (concat (unidecode-sanitize heading) ".tex")))
-        (save-excursion
-          (goto-char position)
-          (org-export-to-file
-              'latex outfile nil t nil nil nil #'org-latex-compile))
-      (funcall-interactively #'org-latex-export-to-pdf)))
-  :custom
+  (org-src-window-setup 'plain)
+  (org-preview-latex-default-process (if (executable-find "dvisvgm")
+                                         'dvisvgm
+                                       'dvipng))
   (org-latex-classes
    '(("article" "\\documentclass[a4paper,11pt]{article}"
       ("\\section{%s}" . "\\section*{%s}")
@@ -65,17 +43,16 @@
       ("\\paragraph{%s}" . "\\paragraph*{%s}")
       ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
   (org-latex-default-packages-alist
-   '(("AUTO" "inputenc" t
-      ("pdflatex"))
-     ("T1" "fontenc" t
-      ("pdflatex"))
+   '(("AUTO" "inputenc" t ("pdflatex"))
+     ("T1" "fontenc" t ("pdflatex"))
      ("" "graphicx" t)
      ("" "amsmath" t)
      ("bookmarks=false,colorlinks=true,urlcolor=blue,linkcolor=,citecolor="
       "hyperref" nil)))
   (org-latex-packages-alist '(("margin=1in" "geometry")
                               ("" "lmodern")
-                              ("" "minted")))
+                              ("" "minted")
+                              ("british" "babel")))
   (org-latex-src-block-backend 'minted)
   (org-latex-minted-options '(("breaklines" . t)
                               ("ignorelexererrors" . t)
@@ -87,33 +64,27 @@
 -draftmode %f"
       "%latex -interaction=batchmode -halt-on-error -shell-escape \
 -output-directory=%o %f")))
+  (org-export-with-smart-quotes t)
+  :config
+  (defun my-org-hook ()
+    (setq-local line-spacing 0.8)
+    (variable-pitch-mode)
+    (flyspell-mode)
+    (face-remap-add-relative 'variable-pitch :family "Times" :height 190))
+  :hook (org-mode . my-org-hook)
+  :hook (org-babel-after-execute . org-redisplay-inline-images)
+  :bind
+  ("C-c C-l" . org-store-link)
+  (:map org-mode-map
+        ("C-c x l" . org-latex-preview)
+        ("C-c l" . org-latex-preview)
+        ("C-c p" . org-latex-export-to-pdf)
+        ("C-c t" . org-babel-tangle))
+  (:map org-src-mode-map
+        ("C-c C-c" . org-edit-src-exit)))
+
+(use-package export-section
   :bind (:map org-mode-map
-              ("C-c p" . #'org-latex-export-to-pdf)
-              ("C-c s p" . #'org-latex-export-section-to-pdf)))
+              ("C-c s p" . org-latex-export-section-to-pdf)))
 
-(use-package htmlize
-  ;; :ensure
-  :after ox-html
-  :demand t)
-
-;; engravings give you no tactical advantage whatsoever.
-;; (use-package engrave-faces
-;;   :disabled t
-;;   :pin gnu-devel
-;;   :ensure
-;;   :demand t
-;;   :after ox-latex
-;;   :custom (org-latex-src-block-backend 'engraved))
-
-(use-package phscroll
-  :disabled t
-  ;; TODO just use `:load-path'
-  ;; :vc (:fetcher github :repo misohena/phscroll)
-  :after (org))
-
-;; (use-package org-wc
-;;   :disabled t
-;;   :load-path "site-lisp/org-wc"
-;;   :after org
-;;   :bind (:map org-mode-map
-;; 	      ("C-c w" . org-wc-display)))
+(provide 'lina-org)

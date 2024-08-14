@@ -2,44 +2,44 @@
 (defconst lina-gc-bytes (* 64 1024 1024))
 (setq load-prefer-newer t
       gc-cons-threshold most-positive-fixnum
-      vc-handled-backends '(Git)
-      use-package-enable-imenu-support t
-      force-load-messages t)
-(when emacs-repository-version
-  debug-on-error t)
+      vc-handled-backends nil
+      use-package-enable-imenu-support t)
+
 ;; https://github.com/doomemacs/doomemacs/blob/master/lisp/doom.el#L361
 (put 'file-name-handler-alist 'lina-saved file-name-handler-alist)
-(setq file-name-handler-alist `(,(rassq 'jka-compr-handler
-                                        file-name-handler-alist)))
+(setq file-name-handler-alist (list (rassq 'jka-compr-handler
+                                           file-name-handler-alist)))
+
 ;; https://github.com/doomemacs/doomemacs/blob/master/lisp/doom.el#L405
 ;; https://github.com/doomemacs/doomemacs/blob/master/lisp/doom.el#L492
-(advice-add #'tool-bar-setup :override #'ignore)
-(advice-add #'display-startup-screen :override #'ignore)
+;; (advice-add #'tool-bar-setup :override #'ignore)
+;; (advice-add #'display-startup-screen :override #'ignore)
 (advice-add #'display-startup-echo-area-message :override #'ignore)
-(defun lina-tool-bar-mode-before ()
-  (advice-remove #'tool-bar-setup #'ignore)
-  (tool-bar-setup))
+;; (defun lina-tool-bar-mode-before ()
+;;   (advice-remove #'tool-bar-setup #'ignore)
+;;   (tool-bar-setup))
+;; (add-hook 'tool-bar-mode-hook #'lina-tool-bar-mode-before)
 
 ;; https://github.com/doomemacs/doomemacs/blob/master/lisp/doom.el#L466
-(put 'mode-line-format 'lina-saved mode-line-format)
-(setq mode-line-format nil
-      ;; inhibit-message t
-      )
+;; (put 'mode-line-format 'lina-saved mode-line-format)
+;; (setq mode-line-format nil)
 
-(defun lina-after-init (&rest _)
+(define-advice startup--load-user-init-file (:after (&rest _))
   (setq gc-cons-threshold lina-gc-bytes
-        inhibit-message nil
         mode-line-format (get 'mode-line-format 'lina-saved)
-        file-name-handler-alist (get 'file-name-handler-alist 'lina-saved))
-  (add-hook 'tool-bar-mode-hook #'lina-tool-bar-mode-before))
-(advice-add #'startup--load-user-init-file :after #'lina-after-init)
+        file-name-handler-alist (get 'file-name-handler-alist 'lina-saved)))
 
-(modify-all-frames-parameters
- `((tty-color-mode . -1)
-   (height . 48)
-   (width . 99)
-   (tool-bar-lines . 0)
-   (menu-bar-lines . ,(if (and window-system
-                               (eq system-type 'darwin))
-                          1 0))))
-(setq tool-bar-mode nil)
+(tool-bar-mode -1)
+(menu-bar-mode -1)
+(defun lina-set-frame-params ()
+  ;; (tty-color-mode . -1)
+  (modify-all-frames-parameters
+   `((height . 60)
+     (width . 180)
+     (tool-bar-lines . 0)
+     (menu-bar-lines . 0)
+     ,@(if (and window-system
+                (eq system-type 'darwin))
+           '((ns-appearance . light))))))
+(lina-set-frame-params)
+(add-hook 'after-init-hook #'lina-set-frame-params)

@@ -1,34 +1,50 @@
 ;; -*- lexical-binding: t; -*-
-(use-package magit
-  ;;:ensure
-  )
-;; :custom
-;; (magit-auto-revert-mode nil)
-;; (global-auto-revert-mode t)
-;; :diminish auto-revert-mode
-;; :bind
-;; ("C-c g c" . #'magit-clone)
-;; ("C-c g d" . #'magit-diff-dwim)
-(use-package magit-autorevert
-  :custom (magit-auto-revert-mode nil))
+(use-package magit-process
+  :demand t
+  :config (setopt magit-auto-revert-mode t))
 
-(use-package vterm
-  :if (not (eq system-type 'windows-nt))
-  ;; :ensure
+(use-package magit
+  :commands magit-dotfiles
   :custom
-  ;; (vterm-always-compile-module t)
-  (vterm-timer-delay 0.001)
-  (vterm-kill-buffer-on-exit nil))
+  (magit-display-buffer-function #'display-buffer)
+  (magit-commit-show-diff nil)
+  :config
+  ;; https://github.com/magit/magit/issues/460#issuecomment-1435971974
+  (defun magit-dotfiles ()
+    "Magit on dotfiles repo for the duration of a recursive edit."
+    (interactive)
+    (let ((magit-git-global-arguments
+           `(,(substitute-env-vars "--git-dir=$HOME/.dotfiles")
+             ,(substitute-env-vars "--work-tree=$HOME")
+             ,@magit-git-global-arguments)))
+      (magit-status "~")
+      (recursive-edit))))
 
 (use-package dired
-  :custom (delete-by-moving-to-trash t)
-  :hook (dired-mode . dired-hide-details-mode))
-(use-package dired-single
-  ;; :ensure
-  :after dired
+  :custom
+  (delete-by-moving-to-trash t)
+  (dired-recursive-deletes 'always)
+  (dired-clean-confirm-killing-deleted-buffers nil)
+  (dired-listing-switches "-aFlh")
+  :hook (dired-mode . dired-hide-details-mode)
   :bind
+  ("C-x d" . dired-jump)
   ("C-x C-d" . dired)
   (:map dired-mode-map
-        ([remap dired-find-file] . dired-single-buffer)
-	([remap dired-mouse-find-file-other-window] . dired-single-buffer-mouse)
-	([remap dired-up-directory] . dired-single-up-directory)))
+        ("<mouse-2>" . dired-mouse-find-file)))
+
+(use-package helpful
+  :bind
+  ([remap describe-function] . helpful-callable)
+  ([remap describe-variable] . helpful-variable)
+  ([remap describe-key] . helpful-key)
+  ([remap describe-symbol] . helpful-symbol)
+  ([remap describe-command] . helpful-command)
+  (:map embark-symbol-map
+        ("h" . helpful-symbol)))
+
+(use-package ange-ftp
+  :custom
+  (ange-ftp-default-user "anonymous")
+  (ange-ftp-generate-anonymous-password "guest")
+  (ange-ftp-try-passive-mode t))
