@@ -31,15 +31,17 @@
 
 (tool-bar-mode -1)
 (menu-bar-mode -1)
-(defun lina-set-frame-params ()
+(defun my-set-frame-params ()
   ;; (tty-color-mode . -1)
   (modify-all-frames-parameters
-   `((height . 60)
-     (width . 180)
+   `(
+     ;; (height . 60)
+     ;; (width . 180)
      (tool-bar-lines . 0)
      (menu-bar-lines . 0)
      ,@(if (and window-system
                 (eq system-type 'darwin))
-           '((ns-appearance . light))))))
-(lina-set-frame-params)
-(add-hook 'after-init-hook #'lina-set-frame-params)
+           '((ns-appearance . light)))))
+  (set-scroll-bar-mode 'right))
+(my-set-frame-params)
+(add-hook 'after-init-hook #'my-set-frame-params)

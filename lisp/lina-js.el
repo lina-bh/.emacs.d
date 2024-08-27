@@ -13,14 +13,11 @@
     (make-local-variable 'exec-path)
     (push (expand-file-name "node_modules/.bin" root) exec-path)))
 
-(use-package reformatter
-  :commands prettier-buffer prettier-on-save-mode
-  :config
-  (reformatter-define prettier
-    :program "prettier"
-    :lighter "Prettier"
-    :args (list "--stdin-filepath" buffer-file-name))
-  :hook (js-base-mode . prettier-on-save-mode))
+;; (use-package reformatter
+;;   :commands prettier-buffer prettier-on-save-mode
+;;   :config
+
+;;   :hook (js-base-mode . prettier-on-save-mode))
 
 (use-package js
   :defines js-mode-map
