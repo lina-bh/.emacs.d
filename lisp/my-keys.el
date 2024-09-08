@@ -42,7 +42,6 @@
  ("M-;" . comment-line)
  ("M-," . pop-global-mark)
  ("M-SPC" . just-one-space)
- ("C-s" . isearch-forward-regexp)
  ("C-h c" . describe-char)
  ("C-h g" . customize-group)
  ("C-h ," . customize-variable)

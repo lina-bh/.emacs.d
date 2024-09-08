@@ -82,8 +82,10 @@
                    (push (derived-mode mode) xs))
                  xs)))
    `((,(rx bos "*" (or "Pp"
-                       "elfeed-entry"))
-      display-buffer-below-selected)
+                       "elfeed-entry"
+                       "Man"))
+      (display-buffer-reuse-mode-window
+       display-buffer-below-selected))
      ((and (not (or ,@(derived-modes 'Info 'package-menu)
                     "COMMIT_EDITMSG"))
            (or ,@(derived-modes 'comint
@@ -97,7 +99,8 @@
                (category . comint)
                ,(rx bos "*" (or "Finder"
                                 "Embark"
-                                "TeX Help"))
+                                "TeX Help"
+                                "vterm"))
                ,(rx (or "shell") "*" eos)))
       display-buffer-in-side-window
       (window-height . ,(/ 1.0 3)))))
@@ -190,7 +193,6 @@
               (local-unset-key (vector asm-comment-char)))
             (unbind-key ":" 'asm-mode-map)))
 (add-hook 'sh-base-mode-hook #'flymake-mode)
-(add-hook 'yaml-ts-mode-hook #'display-line-numbers-mode)
 (add-hook 'text-mode-hook #'visual-line-mode)
 (add-hook 'buffer-face-mode-hook
           (defun my-variable-pitch-mode-hook ()
@@ -357,6 +359,15 @@
   :ensure t
   :init (envrc-global-mode))
 
+(use-package yaml-mode
+  :hook (yaml-mode . display-line-numbers-mode)
+  :hook (yaml-mode . electric-pair-local-mode))
+
+(defun major-mode? ()
+  "What fucking mode is this?"
+  (interactive)
+  (message "%s" major-mode))
+
 ;; (reformatter-define prettier
 ;;   :program "prettier"
 ;;   :lighter "Prettier"
@@ -378,7 +389,7 @@
   :ensure t
   :init
   (setopt global-treesit-auto-mode t
-          treesit-auto-langs '(java bash yaml json typescript tsx rust))
+          treesit-auto-langs '(java bash json typescript tsx rust))
   :config
   (treesit-auto-add-to-auto-mode-alist))
 
