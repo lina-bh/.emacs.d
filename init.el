@@ -100,7 +100,8 @@
                ,(rx bos "*" (or "Finder"
                                 "Embark"
                                 "TeX Help"
-                                "vterm"))
+                                "vterm"
+                                "Agenda Commands"))
                ,(rx (or "shell") "*" eos)))
       display-buffer-in-side-window
       (window-height . ,(/ 1.0 3)))))
@@ -130,11 +131,11 @@
  mouse-wheel-scroll-amount-horizontal 1
  mouse-wheel-tilt-scroll t
  native-comp-async-report-warnings-errors nil
- package-archives nil
- ;; '(("gnu" . "https://elpa.gnu.org/packages/")
- ;;   ("nongnu" . "https://elpa.nongnu.org/nongnu/")
- ;;   ("melpa" . "https://melpa.org/packages/")
- ;;   ("gnu-devel" . "https://elpa.gnu.org/devel/"))
+ package-archives 
+ '(("gnu" . "https://elpa.gnu.org/packages/")
+   ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+   ("melpa" . "https://melpa.org/packages/")
+   ("gnu-devel" . "https://elpa.gnu.org/devel/"))
  package-archive-priorities '(("gnu-devel" . -1))
  read-hide-char ?\u2022 ;; BULLET
  recentf-max-menu-items most-positive-fixnum
@@ -226,7 +227,8 @@
   ("M-g" . consult-imenu)
   ("C-x p f" . consult-find)
   ("C-x p g" . consult-ripgrep)
-  ("C-h i" . consult-info))
+  ("C-h i" . consult-info)
+  ("C-c a" . consult-org-agenda))
 
 (use-package embark-consult
   :ensure t)
@@ -311,6 +313,7 @@
   :hook
   (puni-mode . electric-pair-local-mode)
   (prog-mode . puni-mode)
+  (yaml-mode . puni-mode)
   :bind (:map puni-mode-map
               ("C-c r" . puni-raise)
               ("C-c ." . puni-slurp-forward)
@@ -349,8 +352,9 @@
 (use-package elfeed
   :ensure t
   :init
-  (setopt elfeed-feeds (my-read-from-file
-                        (locate-user-emacs-file "elfeed-feeds.eld"))
+  (setopt elfeed-feeds (ignore-errors
+                         (my-read-from-file
+                          (locate-user-emacs-file "elfeed-feeds.eld")))
           elfeed-search-filter "@1-day-ago +unread ")
   :bind (:map elfeed-show-mode-map
               ("q" . quit-window)))
@@ -363,6 +367,10 @@
   :hook (yaml-mode . display-line-numbers-mode)
   :hook (yaml-mode . electric-pair-local-mode))
 
+(use-package prettier
+  :ensure t
+  :hook (yaml-mode . prettier-mode))
+
 (defun major-mode? ()
   "What fucking mode is this?"
   (interactive)
@@ -374,7 +382,6 @@
 ;;   :args (list "--stdin-filepath" buffer-file-name))
 
 ;;; (load "lina-java")
-;; (require 'lina-org)
 ;;(load "lina-tex")
 ;;(load "lina-js")
 ;;(load "lina-python")
@@ -389,7 +396,14 @@
   :ensure t
   :init
   (setopt global-treesit-auto-mode t
-          treesit-auto-langs '(java bash json typescript tsx rust))
+          treesit-auto-langs '(java
+                               bash
+                               json
+                               typescript
+                               tsx
+                               rust
+                               dockerfile
+                               lua))
   :config
   (treesit-auto-add-to-auto-mode-alist))
 
@@ -405,8 +419,6 @@
               ("C-c C-k" . rust-check)
               ("C-c f" . eglot-format)))
 
-
-
 ;; (defvar-local hide-cursor--original nil)
 
 ;; (define-minor-mode hide-cursor-mode
@@ -418,9 +430,9 @@
 ;;                   cursor-type nil)
 ;;     (setq-local cursor-type (or hide-cursor--original t))))
 
-;; (require 'server)
-;; (unless (server-running-p)
-;;   (server-start))
+(require 'server)
+(unless (server-running-p)
+  (server-start))
 
 (add-hook 'after-init-hook
           (lambda ()
@@ -432,3 +444,10 @@
 
 (with-eval-after-load 'man
   (advice-add 'Man-completion-table :override #'ignore))
+
+(with-eval-after-load 'tramp-rclone
+  (let* ((meth (alist-get tramp-rclone-method tramp-methods nil nil #'string=))
+         (mount-args (alist-get 'tramp-mount-args meth)))
+    (setf mount-args '(("--no-unicode-normalization" "--dir-cache-time" "0s"
+                        "--vfs-cache-mode" "full")))
+    mount-args))

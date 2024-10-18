@@ -9,7 +9,8 @@
                                    (python . t)
                                    (R . t)
                                    (shell . t)
-                                   (latex . t))
+                                   ;; (latex . t)
+                                   )
         org-babel-python-mode "python3"
         org-confirm-babel-evaluate nil
         org-refile-targets '((nil :maxlevel . 2))
@@ -33,9 +34,6 @@
                                             '("sh" "shell" "bash"))))
         org-src-preserve-indentation t
         org-src-window-setup 'plain
-        org-preview-latex-default-process (if (executable-find "dvisvgm")
-                                              'dvisvgm
-                                            'dvipng)
         org-latex-classes
         '(("article" "\\documentclass[a4paper,11pt]{article}"
            ("\\section{%s}" . "\\section*{%s}")
@@ -65,15 +63,20 @@
 -draftmode %f"
            "%latex -interaction=batchmode -halt-on-error -shell-escape \
 -output-directory=%o %f"))
-        org-export-with-smart-quotes t)
-(add-hook 'org-mode-hook
-          (defun my-org-hook ()
-            (setq-local line-spacing 0.8)
-            (variable-pitch-mode)
-            (flyspell-mode)
-            (face-remap-add-relative 'variable-pitch
-                                     :family "Times"
-                                     :height 190)))
+        org-export-with-smart-quotes t
+        org-agenda-window-setup 'current-window)
+;; (defvar org-preview-latex-default-process (if (executable-find "dvisvgm")
+;;                                               'dvisvgm
+;;                                             'dvipng))
+(defun my-org-hook ()
+  (setq-local line-spacing 0.2)
+  (variable-pitch-mode)
+  (flyspell-mode)
+  (face-remap-add-relative 'variable-pitch
+                           :family "Liberation Serif"
+                           :height 120))
+(add-hook 'org-mode-hook #'my-org-hook)
+(add-hook 'org-agenda-mode-hook #'my-org-hook)
 
 (add-hook 'org-babel-after-execute-hook #'org-redisplay-inline-images)
 (bind-keys ("C-c C-l" . org-store-link))
@@ -82,7 +85,8 @@
              ("C-c l" . org-latex-preview)
              ("C-c p" . org-latex-export-to-pdf)
              ("C-c t" . org-babel-tangle)
-             ("C-c s p" . org-latex-export-section-to-pdf))
+             ("C-c s p" . org-latex-export-section-to-pdf)
+             ("C-t" . org-todo))
   (bind-keys :map org-src-mode-map
              ("C-c C-c" . org-edit-src-exit)))
 
