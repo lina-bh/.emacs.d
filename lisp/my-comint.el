@@ -9,4 +9,8 @@
            ("<up>" . comint-previous-input)
            ("<down>" . comint-next-input))
 
+(add-hook 'shell-mode-hook
+          (defun my-shell-mode-hook ()
+            (setq-local comint-process-echoes t)))
+
 (provide 'my-comint)
