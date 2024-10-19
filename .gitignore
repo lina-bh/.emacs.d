@@ -10,3 +10,4 @@
 !/auto-insert/
 .DS_Store
 *.elc
+!/flake.nix
