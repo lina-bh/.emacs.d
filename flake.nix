@@ -23,29 +23,27 @@
       nixpkgs,
     }:
     flake-utils.lib.eachDefaultSystem (system: {
-      packages = rec {
-        emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
-          config = ./init.el;
-          package = emacs-overlay.packages.${system}.emacs-git;
-          extraEmacsPackages =
-            epkgs: with epkgs; [
-              markdown-mode
-              org
-              vterm
-              (treesit-grammars.with-grammars (
-                gram: with gram; [
-                  tree-sitter-bash
-                  tree-sitter-dockerfile
-                  tree-sitter-java
-                  tree-sitter-json
-                  tree-sitter-lua
-                  tree-sitter-rust
-                  tree-sitter-tsx
-                  tree-sitter-typescript
-                ]
-              ))
-            ];
-        };
+      packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
+        config = ./init.el;
+        package = emacs-overlay.packages.${system}.emacs-git;
+        extraEmacsPackages =
+          epkgs: with epkgs; [
+            embark-consult
+            caddyfile-mode
+            markdown-mode
+            nix-mode
+            org
+            (treesit-grammars.with-grammars (
+              gram: with gram; [
+                tree-sitter-bash
+                tree-sitter-dockerfile
+                tree-sitter-java
+                tree-sitter-json
+                tree-sitter-tsx
+                tree-sitter-typescript
+              ]
+            ))
+          ];
       };
     });
 }
