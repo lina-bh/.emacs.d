@@ -1,6 +1,5 @@
 {
   nixConfig = {
-    allow-dirty = false;
     extra-substituters = [
       "https://nix-community.cachix.org"
     ];
@@ -11,7 +10,7 @@
 
   inputs = {
     emacs-overlay.url = "github:nix-community/emacs-overlay";
-    flake-utils.follows = "emacs-overlay/flake-utils";
+    flake-utils.url = "github:numtide/flake-utils";
     nixpkgs.follows = "emacs-overlay/nixpkgs";
   };
 
@@ -22,28 +21,45 @@
       flake-utils,
       nixpkgs,
     }:
-    flake-utils.lib.eachDefaultSystem (system: {
-      packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
-        config = ./init.el;
-        package = emacs-overlay.packages.${system}.emacs-git;
-        extraEmacsPackages =
-          epkgs: with epkgs; [
-            embark-consult
-            caddyfile-mode
-            markdown-mode
-            nix-mode
-            org
-            (treesit-grammars.with-grammars (
-              gram: with gram; [
-                tree-sitter-bash
-                tree-sitter-dockerfile
-                tree-sitter-java
-                tree-sitter-json
-                tree-sitter-tsx
-                tree-sitter-typescript
-              ]
-            ))
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      {
+        packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
+          config = ./init.el;
+          package = emacs-overlay.packages.${system}.emacs-git;
+          extraEmacsPackages =
+            epkgs: with epkgs; [
+              embark-consult
+              caddyfile-mode
+              markdown-mode
+              nix-mode
+              org
+              (treesit-grammars.with-grammars (
+                gram: with gram; [
+                  tree-sitter-bash
+                  tree-sitter-dockerfile
+                  tree-sitter-java
+                  tree-sitter-json
+                  tree-sitter-tsx
+                  tree-sitter-typescript
+                ]
+              ))
+            ];
+        };
+        packages.tools-for-emacs = pkgs.buildEnv {
+          name = "tools-for-emacs";
+          paths = with pkgs; [
+            fd
+            biome
+            nix-direnv
+            nixfmt-rfc-style
+            ruff
+            yamlfmt
           ];
-      };
-    });
+        };
+      }
+    );
 }

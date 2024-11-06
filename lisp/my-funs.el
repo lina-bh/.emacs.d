@@ -59,6 +59,21 @@
   (interactive)
   (call-interactively (keymap-lookup (current-local-map) "C-M-x")))
 
+(defun colorise ()
+  (interactive)
+  (ansi-color-apply-on-region (point-min) (point-max)))
+
+(defun ansible-doc (module)
+  (interactive
+   (list
+    (substring (thing-at-point 'filename t) 0 -1)))
+  (let ((buffer-name (format "*%s*" module)))
+    (or (and (get-buffer buffer-name)
+             (display-buffer buffer-name))
+        (progn
+          (async-shell-command (format "ansible-doc '%s'" module) buffer-name)
+          (colorise)))))
+
 (bind-keys ("C-w" . c-w-dwim)
            ("C-x 2" . split-and-follow-vertically)
            ("C-x 3" . split-and-follow-horizontally))

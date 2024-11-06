@@ -94,6 +94,7 @@
 
 (add-hook 'after-init-hook
           (defun my-init-hook ()
+            (setopt vc-handled-backends '(Git))
             (let ((backups-directory (locate-user-emacs-file "backups/")))
               (make-directory backups-directory t)
               (setopt auto-save-file-name-transforms
@@ -142,7 +143,7 @@
     :commands project-add-dir-local-variable project-flake
     :custom
     (project-prompter #'my-project-prompt-dir)
-    (project-vc-extra-root-markers '(".project" "pom.xml" "Cargo.toml"))
+    (project-vc-extra-root-markers '(".git" ".project" "pom.xml" "Cargo.toml"))
     :config
     (defun my-project-prompt-dir ()
       (if current-prefix-arg
@@ -158,7 +159,9 @@
         (find-file "./flake.nix")))
     :bind
     ("M-!" . project-shell-command)
-    ("M-&" . project-async-shell-command))
+    ("M-&" . project-async-shell-command)
+    (:map project-prefix-map
+          ("b" . project-list-buffers)))
 (use-package compile
     :ensure nil
     :custom
@@ -291,7 +294,8 @@
           (push (cons 'derived-mode (intern (format "%s-mode" mode))) xs))
         xs))
     (defconst tray-buffer-criteria
-      `(and (not ,@(match-derived-modes 'Info 'package-menu))
+      `(and (not (or ,@(match-derived-modes 'Info 'package-menu)
+                     "Shell Command"))
             (or ,@(match-derived-modes 'comint
                                        'special
                                        'term
@@ -301,7 +305,7 @@
                                        'compilation)
                 (category . comint)
                 ,(rx bos "*" (or "Finder"
-                                 "Embark"
+                                 ;; "Embark"
                                  "TeX Help"
                                  "Agenda Commands"))
                 ,(rx (or "shell" "vterm" "eshell") "*")
@@ -311,6 +315,9 @@
      `((,(rx bos "*Pp")
          (display-buffer-reuse-mode-window
           display-buffer-below-selected))
+       (,(rx bos "*Customiz")
+         (display-buffer-reuse-mode-window
+          display-buffer-pop-up-window))
        (,(rx bos "*" (or "Man"
                          "info"))
          (display-buffer-reuse-mode-window
@@ -337,9 +344,9 @@
         (apply fun args)
         (set-window-dedicated-p (selected-window) dedicated))))
 (use-package modus-themes
-    :ensure nil
-    :load-path (lambda ()
-                 (expand-file-name "./themes" data-directory))
+    :ensure t
+    ;; :load-path (lambda ()
+    ;;              (expand-file-name "./themes" data-directory))
     :custom
     (modus-themes-variable-pitch-ui t)
     (modus-themes-mixed-fonts t)
@@ -378,7 +385,7 @@
     :custom
     (show-paren-mode nil)
     (show-paren-context-when-offscreen 'overlay)
-    :hook ((prog-mode conf-mode) . show-paren-local-mode))
+    :hook ((prog-mode conf-mode yaml-mode) . show-paren-local-mode))
 
 (use-package goto-addr
     :custom (goto-address-mail-regexp "")
@@ -559,7 +566,7 @@
       (newline-and-indent)
       (yaml-electric-backspace 1)
       (insert "- "))
-    :hook (yaml-mode . electric-pair-local-mode)
+    :hook (yaml-mode . puni-mode)
     :bind (:map yaml-mode-map
                 ("M-RET" . my-yaml-insert-item)))
 
@@ -846,11 +853,13 @@
 (use-package envrc
     :ensure t
     :custom
-    (envrc-global-mode t)
+    (envrc-debug t)
     (envrc-none-lighter nil)
+    (envrc-show-summary-in-minibuffer nil)
     :init
     (defalias 'direnv-reload #'envrc-reload)
-    (defalias 'direnv-allow #'envrc-allow))
+    (defalias 'direnv-allow #'envrc-allow)
+    :hook ((prog-mode text-mode conf-mode comint-mode) . envrc-mode))
 
 (use-package transient
     :ensure t
@@ -876,9 +885,6 @@
                 ,@magit-git-global-arguments)))
         (magit-status "~")
         (recursive-edit))))
-(use-package dired-git-info
-    :ensure t
-    :hook (dired-after-readin . dired-git-info-auto-enable))
 
 (require 'server)
 (unless (server-running-p)
