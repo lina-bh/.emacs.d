@@ -2,8 +2,18 @@
 (eval-and-compile
   (require 'cl-lib))
 
+(defun ansible-doc--plugins ()
+  (interactive)
+  (let ((ansible-doc (executable-find "ansible-doc")))
+    (with-temp-buffer
+      (call-process ansible-doc nil t nil "-jl")
+      (goto-char (point-min))
+      (let ((plugins (json-parse-buffer)))
+        plugins))))
+
 (defun ansible-doc (plugin)
-  (interactive "MPlugin: \n")
+  (interactive
+   "MPlugin: \n")
   (let* (buffer
          (sentinel (lambda (proc status)
                      (with-current-buffer buffer
