@@ -295,6 +295,7 @@
         xs))
     (defconst tray-buffer-criteria
       `(and (not (or ,@(match-derived-modes 'Info 'package-menu)
+                     ,(rx bos "magit-diff")
                      "Shell Command"))
             (or ,@(match-derived-modes 'comint
                                        'special

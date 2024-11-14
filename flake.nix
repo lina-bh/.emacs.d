@@ -49,17 +49,40 @@
               ))
             ];
         };
-        packages.tools-for-emacs = pkgs.buildEnv {
-          name = "tools-for-emacs";
-          paths = with pkgs; [
-            fd
-            biome
-            nix-direnv
-            nixfmt-rfc-style
-            ruff
-            yamlfmt
-          ];
-        };
+
+        packages.emacs = pkgs.stdenvNoCC.mkDerivation (
+          let
+            emacs-with-packages = self.packages.${system}.emacs-with-packages;
+          in
+          let
+            name = "emacs";
+          in
+          {
+            inherit name;
+            pname = name;
+            dontUnpack = true;
+            nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+            buildPhase = ''
+              mkdir $out
+              ln -s ${emacs-with-packages}/share $out/share
+              for bin in emacs emacsclient; do
+                makeBinaryWrapper ${emacs-with-packages}/bin/$bin $out/bin/$bin \
+                  --inherit-argv0 \
+                  --suffix PATH : ${
+                    nixpkgs.lib.makeBinPath (
+                      with pkgs;
+                      [
+                        nixfmt-rfc-style
+                        ripgrep
+                        yamlfmt
+                      ]
+                    )
+                  }
+              done
+            '';
+          }
+        );
+
       }
     );
 }

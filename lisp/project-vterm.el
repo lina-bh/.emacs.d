@@ -6,13 +6,8 @@
 
 (defun project-vterm (&optional prefix)
   (interactive "P")
-  (let ((buffer-directory (directory-file-name default-directory))
-        (default-directory (project-root (project-current t)))
+  (let ((default-directory (project-root (project-current t)))
         (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
-    (vterm prefix)
-    (when (vterm--at-prompt-p)
-      (with-current-buffer vterm-buffer-name
-        (vterm-insert "cd " buffer-directory)
-        (vterm-send-return)))))
+    (vterm prefix)))
 
 (provide 'project-vterm)
