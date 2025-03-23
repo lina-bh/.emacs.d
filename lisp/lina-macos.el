@@ -1,21 +1,16 @@
 ;; -*- lexical-binding: t; -*-
-(use-package man
-  :config
-  (define-advice Man-completion-table (:before-while (&rest _) macos-disable)
-    (not (eq system-type 'darwin))))
-
 (let ((monospace-spec '(:family "Monaco" :height 115)))
   (use-package emacs
-    :if (eq system-type 'darwin)
-    :custom
-    (mouse-wheel-flip-direction t)
-    :custom-face
-    (default ((((type ns)) ,monospace-spec)))
-    (fixed-pitch ((((type ns)) ,monospace-spec)))
-    (variable-pitch ((((type ns)) (:family "Lucida Grande" :width regular :height 140))))
-    (fill-column-indicator ((((type ns)) (:family "Menlo" :foreground "pink"
-                                                  :background unspecified))))
-    (tab-line ((((type ns)) (:family "Helvetica" :height 130))))))
+      :if (eq system-type 'darwin)
+      :custom
+      (mouse-wheel-flip-direction t)
+      :custom-face
+      (default ((((type ns)) ,monospace-spec)))
+      (fixed-pitch ((((type ns)) ,monospace-spec)))
+      (variable-pitch ((((type ns)) (:family "Lucida Grande" :width regular :height 140))))
+      (fill-column-indicator ((((type ns)) (:family "Menlo" :foreground "pink"
+                                                    :background unspecified))))
+      (tab-line ((((type ns)) (:family "Helvetica" :height 130))))))
 
 (use-package dired
   :if (eq system-type 'darwin)

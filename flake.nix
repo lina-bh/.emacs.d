@@ -24,12 +24,14 @@
     flake-utils.lib.eachDefaultSystem (
       system:
       let
-        pkgs = import nixpkgs { inherit system; };
+        pkgs = nixpkgs.legacyPackages.${system};
       in
       {
+        packages.emacs = self.packages.${system}.emacs-with-packages;
+        
         packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
           config = ./init.el;
-          package = emacs-overlay.packages.${system}.emacs-git;
+          package = pkgs.emacs;
           extraEmacsPackages =
             epkgs: with epkgs; [
               embark-consult
@@ -50,7 +52,7 @@
             ];
         };
 
-        packages.emacs = pkgs.stdenvNoCC.mkDerivation (
+        packages.emacs-wrapped = pkgs.stdenvNoCC.mkDerivation (
           let
             emacs-with-packages = self.packages.${system}.emacs-with-packages;
           in

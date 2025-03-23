@@ -11,7 +11,7 @@
       (message "Buffer not visiting any file"))))
 
 (defun which ()
-  "Show the path to a command."
+  "Where the fuck is this command on the PATH?"
   (interactive)
   (if-let* ((command (read-shell-command "Which command: "))
             (path (executable-find command)))

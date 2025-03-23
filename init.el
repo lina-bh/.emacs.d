@@ -20,7 +20,6 @@
   (unbind-key key global-map))
 
 (setopt
- async-shell-command-buffer 'new-buffer
  blink-cursor-mode nil
  bookmark-save-flag 1
  bookmark-fringe-mark nil
@@ -28,16 +27,12 @@
  create-lockfiles nil
  css-indent-offset 2
  deactivate-mark nil
- delete-by-moving-to-trash t
  delete-selection-mode t
- display-buffer-base-action '((display-buffer-reuse-window
-                               display-buffer-in-previous-window
-                               display-buffer-reuse-mode-window
-                               display-buffer-use-least-recent-window))
  eldoc-echo-area-use-multiline-p nil
  eldoc-minor-mode-string nil
  enable-recursive-minibuffers t
  frame-title-format "%b"
+ fill-column 80
  help-window-select t
  indent-tabs-mode nil
  indicate-empty-lines t
@@ -48,32 +43,20 @@
  native-comp-async-report-warnings-errors nil
  read-hide-char ?\u2022   ; BULLET
  repeat-mode t
- recentf-max-menu-items most-positive-fixnum
- recentf-max-saved-items 80
- recentf-mode t
  ring-bell-function #'ignore
+ safe-local-variable-directories '("~/.emacs.d")
  save-place-mode t
- scroll-conservatively 101
- scroll-step 1
  sh-basic-offset 2
- shell-command-prompt-show-cwd t
- shell-kill-buffer-on-exit t
- switch-to-buffer-obey-display-actions t
- switch-to-buffer-in-dedicated-window 'pop
  use-dialog-box nil
  use-short-answers t
  warning-minimum-level :error)
 
 (bind-keys
- ("C-<tab>" . local-eval-defun)
- ("C-S-c" . kill-ring-save)
- ("C-S-v" . yank)
  ("C-S-z" . undo-redo)
  ("C-k" . kill-whole-line)
  ("C-v" . yank)
  ("C-z" . undo)
  ("M-;" . comment-line)
- ("M-SPC" . just-one-space)
  ("M-i" . completion-at-point)
  ("M-," . pop-to-mark-command)
  ("s-Z" . undo-redo)
@@ -83,14 +66,13 @@
  ("ESC" . isearch-exit)
  :map ctl-x-map
  ("C-g" . keyboard-quit)
- ("C-r" . recentf-open)
- ("[" . previous-buffer)
  ("x" . revert-buffer-quick)
  :map help-map
  ("," . customize-variable)
  ("c" . describe-char)
  ("g" . customize-group)
- ("s" . info-lookup-symbol))
+ ("s" . info-lookup-symbol)
+ ("C-f" . describe-face))
 
 (add-hook 'after-init-hook
           (defun my-init-hook ()
@@ -102,14 +84,26 @@
 
 (add-to-list 'auto-mode-alist '("\\.gitignore\\'" . conf-mode))
 
+(use-package recentf
+    :ensure nil
+    :custom
+    (recentf-mode t)
+    (recentf-max-menu-items most-positive-fixnum)
+    (recentf-max-saved-items 80)
+    :bind
+    (:map ctl-x-map
+          ("C-r" . recentf-open)))
+
 (use-package mwheel
     :ensure nil
     :custom
+    (scroll-conservatively 101)
+    (scroll-step 1)
     (mouse-wheel-progressive-speed t)
     (mouse-wheel-scroll-amount '(1 ((shift) . 1)))
     (mouse-wheel-scroll-amount-horizontal 1)
     (mouse-wheel-tilt-scroll t)
-    (mouse-wheel-flip-direction t))
+    (mouse-wheel-flip-direction (eq window-system 'ns)))
 
 ;; finding stuff
 
@@ -134,26 +128,31 @@
     :ensure nil
     :custom
     (xref-prompt-for-identifier nil)
-    (xref-search-program (if (executable-find "rg") 'ripgrep 'grep))
+    :config
+    (define-advice xref-matches-in-files
+        (:around (xref-matches-in-files &rest args) ripgrep)
+      (let ((xref-search-program (or (and (executable-find "rg" t)
+                                          'ripgrep)
+                                     'grep)))
+        (apply xref-matches-in-files args)))
     :bind
     ("M-/" . xref-find-definitions))
 (use-package project
     :ensure nil
     :functions my-project-prompt-dir
-    :commands project-add-dir-local-variable project-flake
+    :commands project-add-dir-local-variable find-flake
     :custom
-    (project-prompter #'my-project-prompt-dir)
     (project-vc-extra-root-markers '(".git" ".project" "pom.xml" "Cargo.toml"))
     :config
     (defun my-project-prompt-dir ()
       (if current-prefix-arg
           (read-directory-name "Select directory: " nil nil t)
-        default-directory))
+        (project-prompt-project-dir)))
     (defun project-add-dir-local-variable ()
       (interactive)
       (let ((default-directory (project-root (project-current))))
         (call-interactively #'add-dir-local-variable)))
-    (defun project-flake ()
+    (defun find-flake ()
       (interactive)
       (let ((default-directory (project-root (project-current t))))
         (find-file "./flake.nix")))
@@ -161,7 +160,8 @@
     ("M-!" . project-shell-command)
     ("M-&" . project-async-shell-command)
     (:map project-prefix-map
-          ("b" . project-list-buffers)))
+          ("b" . project-list-buffers)
+          ("d" . project-dired)))
 (use-package compile
     :ensure nil
     :custom
@@ -177,7 +177,7 @@
     :bind (:map project-prefix-map
                 ("q" . flymake-show-project-diagnostics)))
 (use-package eglot
-    :ensure nil
+    :ensure t
     :custom
     (eglot-ignored-server-capabilities '(:inlayHintProvider))
     (eglot-report-progress nil)
@@ -206,12 +206,6 @@
 
 (use-package consult
     :ensure t
-    :init
-    (bind-key "f" (if (or (executable-find "fd")
-                          (executable-find "fdfind"))
-                      'consult-fd
-                    'consult-find)
-              project-prefix-map)
     :custom
     (consult-async-split-style nil)
     (consult-find-args "find .")
@@ -221,18 +215,26 @@
     (completion-in-region-function #'consult-completion-in-region)
     (xref-show-definitions-function #'consult-xref)
     (xref-show-xrefs-function #'consult-xref)
+    :config
+    (define-advice consult-grep
+        (:around (consult-grep &rest args) ripgrep)
+      (apply (or (and (executable-find "rg" 'remote) 'consult-ripgrep)
+                 consult-grep)
+             args))
+    (define-advice consult-find
+        (:around (consult-find &rest args) fd)
+      (apply (or (and (executable-find "fd" 'remote) 'consult-fd)
+                 consult-find)
+             args))
     :bind
     ("M-g" . consult-imenu)
-    ("M-s" . consult-register-store)
-    ("M-j" . consult-register)
     ("M-y" . consult-yank-pop)
-    (:map mode-specific-map
-          ("a" . consult-org-agenda))
+    (:map project-prefix-map
+          ("g" . consult-grep)
+          ("f" . consult-find))
     (:map ctl-x-map
           ("b" . consult-buffer)
           ("f" . consult-flymake))
-    (:map project-prefix-map
-          ("g" . consult-ripgrep))
     (:map help-map
           ("i" . consult-info)))
 
@@ -262,12 +264,11 @@
     (:map icomplete-minibuffer-map
           ("C-." . embark-act)))
 
-(use-package corfu
-    :ensure t
+(use-package completion-preview
+    :ensure nil
     :custom
-    (corfu-quit-no-match nil)
-    (global-corfu-mode t)
-    (global-corfu-modes '((not inferior-python-mode) t)))
+    (completion-preview-exact-match-only t)
+    (global-completion-preview-mode t))
 
 (use-package cape
     :ensure t
@@ -312,10 +313,15 @@
                 ,(rx (or "shell" "vterm" "eshell") "*")
                 "COMMIT_EDITMSG")))
     :custom
+    (display-buffer-base-action '((display-buffer-reuse-window
+                                   display-buffer-in-previous-window
+                                   display-buffer-reuse-mode-window
+                                   display-buffer-use-least-recent-window)))
+    (switch-to-buffer-obey-display-actions t)
+    (switch-to-buffer-in-dedicated-window 'pop)
     (display-buffer-alist
      `((,(rx bos "*Pp")
-         (display-buffer-reuse-mode-window
-          display-buffer-below-selected))
+         display-buffer-below-selected)
        (,(rx bos "*Customiz")
          (display-buffer-reuse-mode-window
           display-buffer-pop-up-window))
@@ -338,16 +344,17 @@
     (tab-line-new-button-show nil)
     (tab-line-close-button-show nil)
     (tab-line-switch-cycling nil)
+    :custom-face
+    (tab-line ((t (:height unspecified))))
     :config
     (define-advice tab-line-select-tab-buffer
         (:around (fun &rest args) dedicated)
       (let ((dedicated (window-dedicated-p)))
         (apply fun args)
         (set-window-dedicated-p (selected-window) dedicated))))
+
 (use-package modus-themes
     :ensure t
-    ;; :load-path (lambda ()
-    ;;              (expand-file-name "./themes" data-directory))
     :custom
     (modus-themes-variable-pitch-ui t)
     (modus-themes-mixed-fonts t)
@@ -358,6 +365,8 @@
        (bg-line-number-inactive unspecified)
        (bg-line-number-active unspecified)
        (fg-line-number-active fg-main)))
+    :custom-face
+    (modus-themes-ui-variable-pitch ((((type x pgtk)) :family "Inter")))
     :config
     (defun my-modus-custom ()
       (modus-themes-with-colors
@@ -373,7 +382,6 @@
     :ensure nil
     :custom
     (display-fill-column-indicator-character ?\u2595) ;; RIGHT ONE EIGHT BLOCK
-    (display-fill-column-indicator-column 80)
     :hook (prog-mode . display-fill-column-indicator-mode))
 (use-package display-line-numbers
     :ensure nil
@@ -385,7 +393,7 @@
     :ensure nil
     :custom
     (show-paren-mode nil)
-    (show-paren-context-when-offscreen 'overlay)
+    (show-paren-context-when-offscreen t)
     :hook ((prog-mode conf-mode yaml-mode) . show-paren-local-mode))
 
 (use-package goto-addr
@@ -423,7 +431,6 @@
 (use-package elisp-mode
     :ensure nil
     :functions elisp-enable-lexical-binding
-    :custom (lisp-indent-function #'common-lisp-indent-function)
     :config
     (defun my-elisp-mode-hook ()
       (require 'autoinsert)
@@ -457,7 +464,7 @@
     :bind
     ("M-:" . pp-eval-expression)
     (:map emacs-lisp-mode-map :prefix "C-c" :prefix-map my-elisp-C-c-map
-          ("C-c C-p" . pp-macroexpand-last-sexp)))
+          ("C-p" . pp-macroexpand-last-sexp)))
 
 (use-package make-mode
     :ensure nil
@@ -669,73 +676,70 @@
     :ensure nil
     :custom
     (org-adapt-indentation nil)
-    (org-link-descriptive nil)
+    (org-agenda-window-setup 'current-window)
     (org-export-backends '(html latex))
-    (org-babel-load-languages '((emacs-lisp . t)
-                                (python . t)
-                                (R . t)
-                                (shell . t)
-                                ;; (latex . t)
-                                ))
-    :init
-    (setopt
-     org-babel-python-mode "python3"
-     org-confirm-babel-evaluate nil
-     org-refile-targets '((nil :maxlevel . 2))
-     org-html-postamble nil
-     org-startup-folded 'show2levels
-     org-format-latex-options
-     (list :foreground 'default
-           :background "Transparent"
-           :scale 2.0
-           :html-foreground "Black"
-           :html-background "Transparent"
-           :html-scale 1.0
-           :matchers '("begin" "$1" "$" "$$" "\\(" "\\["))
-     org-src-lang-modes `(,@(and (fboundp #'LaTeX-mode)
+    (org-export-with-smart-quotes t)
+    (org-html-postamble nil)
+    (org-link-descriptive nil)
+    (org-refile-targets '((nil :maxlevel . 2)))
+    (org-startup-folded 'show2levels)
+    ;; src
+    (org-confirm-babel-evaluate nil)
+    (org-src-preserve-indentation t)
+    (org-src-window-setup 'plain)
+    (org-src-lang-modes `(,@(and (fboundp #'LaTeX-mode)
                                  (mapcar (lambda (lang)
                                            (cons lang 'LaTeX))
                                          '("latex" "beamer")))
                             ,@(and (treesit-language-available-p 'bash)
                                    (mapcar (lambda (lang)
                                              (cons lang 'bash-ts))
-                                           '("sh" "shell" "bash"))))
-     org-src-preserve-indentation t
-     org-src-window-setup 'plain
-     org-latex-classes
-     '(("article" "\\documentclass[a4paper,11pt]{article}"
-        ("\\section{%s}" . "\\section*{%s}")
-        ("\\subsection{%s}" . "\\subsection*{%s}")
-        ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
-        ("\\paragraph{%s}" . "\\paragraph*{%s}")
-        ("\\subparagraph{%s}" . "\\subparagraph*{%s}")))
-     org-latex-default-packages-alist
+                                           '("sh" "shell" "bash")))))
+    (org-babel-load-languages '((emacs-lisp . t)
+                                (python . t)
+                                (R . t)
+                                (shell . t)
+                                ;; (latex . t)
+                                ))
+    ;; latex
+    (org-latex-classes '(("article" "\\documentclass[a4paper,11pt]{article}"
+                          ("\\section{%s}" . "\\section*{%s}")
+                          ("\\subsection{%s}" . "\\subsection*{%s}")
+                          ("\\subsubsection{%s}" . "\\subsubsection*{%s}")
+                          ("\\paragraph{%s}" . "\\paragraph*{%s}")
+                          ("\\subparagraph{%s}" . "\\subparagraph*{%s}"))))
+    (org-latex-default-packages-alist
      '(("AUTO" "inputenc" t ("pdflatex"))
        ("T1" "fontenc" t ("pdflatex"))
        ("" "graphicx" t)
        ("" "amsmath" t)
        ("bookmarks=false,colorlinks=true,urlcolor=blue,linkcolor=,citecolor="
-        "hyperref" nil))
-     org-latex-packages-alist '(("margin=1in" "geometry")
+        "hyperref" nil)))
+    (org-latex-packages-alist '(("margin=1in" "geometry")
                                 ("" "lmodern")
                                 ("" "minted")
-                                ("british" "babel"))
-     org-latex-src-block-backend 'minted
-     org-latex-minted-options '(("breaklines" . t)
+                                ("british" "babel")))
+    (org-format-latex-options '(:foreground 'default
+                                :background "Transparent"
+                                :scale 2.0
+                                :html-foreground "Black"
+                                :html-background "Transparent"
+                                :html-scale 1.0
+                                :matchers ("begin" "$1" "$" "$$" "\\(" "\\[")))
+    (org-latex-src-block-backend 'minted)
+    (org-latex-minted-options '(("breaklines" . t)
                                 ("ignorelexererrors" . t)
-                                ("samepage" . t))
-     org-latex-remove-logfiles nil
-     org-latex-pdf-process
+                                ("samepage" . t)))
+    (org-latex-remove-logfiles nil)
+    (org-latex-pdf-process
      (nreverse
       '("%latex -interaction=nonstopmode -output-directory=%o -shell-escape \
 -draftmode %f"
         "%latex -interaction=batchmode -halt-on-error -shell-escape \
--output-directory=%o %f"))
-     org-export-with-smart-quotes t
-     org-agenda-window-setup 'current-window)
+-output-directory=%o %f")))
     :config
+    (setq-mode-local org-mode line-spacing 0.2)
     (defun my-org-hook ()
-      (setq-local line-spacing 0.2)
       (variable-pitch-mode)
       (flyspell-mode)
       (face-remap-add-relative 'variable-pitch
@@ -745,7 +749,8 @@
     ((org-mode org-agenda-mode) . my-org-hook)
     (org-babel-after-execute . org-redisplay-inline-images)
     :bind
-    ("C-c C-l" . org-store-link)
+    (:map mode-specific-map
+          ("C-l" . org-store-link))
     (:map org-mode-map :prefix "C-c" :prefix-map my-org-prefix-map
           ("l" . org-latex-preview)
           ("p" . org-latex-export-to-pdf)
@@ -755,12 +760,6 @@
           ("C-t" . org-todo))
     (:map org-src-mode-map
           ("C-c C-c" . org-edit-src-exit)))
-
-
-
-;; (defvar org-preview-latex-default-process (if (executable-find "dvisvgm")
-;;                                               'dvisvgm
-;;                                             'dvipng))
 
 ;; applications
 
@@ -776,7 +775,7 @@
 
 (use-package ielm
     :ensure nil
-    :commands ielm-return
+    :commands ielm-interrupt
     :config
     (defun ielm-interrupt ()
       (interactive)
@@ -784,9 +783,17 @@
       (ielm-return))
     :bind ("C-c" . ielm-interrupt))
 
+(use-package shell
+    :ensure nil
+    :custom
+    (async-shell-command-buffer 'new-buffer)
+    (shell-command-prompt-show-cwd t)
+    (shell-kill-buffer-on-exit t))
+
 (use-package dired
     :ensure nil
     :custom
+    (delete-by-moving-to-trash t)
     (dired-recursive-deletes 'always)
     (dired-clean-confirm-killing-deleted-buffers nil)
     (dired-listing-switches "-aFlh")
@@ -796,28 +803,18 @@
     :hook (dired-mode . dired-hide-details-mode)
     :bind
     (:map ctl-x-map
-          ("d" . dired-jump)
-          ("C-d" . dired))
+          ("d" . dired-jump))
     (:map dired-mode-map
           ("<mouse-2>" . dired-mouse-find-file)))
 
+(use-package tramp
+    :config (tramp-enable-method "toolbox"))
 (use-package ange-ftp
     :ensure nil
     :custom
     (ange-ftp-default-user "anonymous")
     (ange-ftp-generate-anonymous-password "guest")
     (ange-ftp-try-passive-mode t))
-
-(use-package tramp-rclone
-    :ensure nil
-    :config
-    (let* ((meth (alist-get tramp-rclone-method
-                            tramp-methods nil nil #'string=))
-           (mount-args (alist-get 'tramp-mount-args meth)))
-      (setf mount-args '(("--no-unicode-normalization"
-                          "--dir-cache-time" "0s"
-                          "--vfs-cache-mode" "full")))
-      mount-args))
 
 (use-package man
     :ensure nil
@@ -870,22 +867,23 @@
                (inhibit-same-window . t))))
 (use-package magit
     :ensure t
-    :commands magit-dotfiles
     :custom
     (magit-display-buffer-function #'display-buffer)
     (magit-commit-show-diff nil)
     :init
-    (magit-auto-revert-mode t)
-    :config
-    (defun magit-dotfiles ()
-      "Magit on dotfiles repo for the duration of a recursive edit."
-      (interactive)
-      (let ((magit-git-global-arguments
-             `(,(substitute-env-vars "--git-dir=$HOME/.dotfiles")
-                ,(substitute-env-vars "--work-tree=$HOME")
-                ,@magit-git-global-arguments)))
-        (magit-status "~")
-        (recursive-edit))))
+    (magit-auto-revert-mode t))
+
+(use-package faces
+    :ensure nil
+    :custom-face
+    (default ((((type x pgtk)) (:family
+                                "Iosevka Nerd Font"
+                                :height
+                                105))))
+    (fixed-pitch ((t (:family
+                      unspecified
+                      :inherit
+                      nil)))))
 
 (require 'server)
 (unless (server-running-p)
