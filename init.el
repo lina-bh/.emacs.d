@@ -264,11 +264,12 @@
     (:map icomplete-minibuffer-map
           ("C-." . embark-act)))
 
-(use-package completion-preview
-    :ensure nil
+(use-package corfu
+    :ensure t
     :custom
-    (completion-preview-exact-match-only t)
-    (global-completion-preview-mode t))
+    (corfu-quit-no-match nil)
+    (global-corfu-mode t)
+    (global-corfu-modes '((not inferior-python-mode) t)))
 
 (use-package cape
     :ensure t
