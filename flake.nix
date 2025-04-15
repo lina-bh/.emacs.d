@@ -28,17 +28,19 @@
       in
       {
         packages.emacs = self.packages.${system}.emacs-with-packages;
-        
+
         packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
           config = ./init.el;
-          package = pkgs.emacs;
+          package = pkgs.emacs30-pgtk;
           extraEmacsPackages =
             epkgs: with epkgs; [
-              embark-consult
-              caddyfile-mode
-              markdown-mode
-              nix-mode
-              org
+              # embark-consult
+              # caddyfile-mode
+              # markdown-mode
+              # nix-mode
+              # org
+              # gcmh
+              # auctex
               (treesit-grammars.with-grammars (
                 gram: with gram; [
                   tree-sitter-bash
@@ -51,40 +53,6 @@
               ))
             ];
         };
-
-        packages.emacs-wrapped = pkgs.stdenvNoCC.mkDerivation (
-          let
-            emacs-with-packages = self.packages.${system}.emacs-with-packages;
-          in
-          let
-            name = "emacs";
-          in
-          {
-            inherit name;
-            pname = name;
-            dontUnpack = true;
-            nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
-            buildPhase = ''
-              mkdir $out
-              ln -s ${emacs-with-packages}/share $out/share
-              for bin in emacs emacsclient; do
-                makeBinaryWrapper ${emacs-with-packages}/bin/$bin $out/bin/$bin \
-                  --inherit-argv0 \
-                  --suffix PATH : ${
-                    nixpkgs.lib.makeBinPath (
-                      with pkgs;
-                      [
-                        nixfmt-rfc-style
-                        ripgrep
-                        yamlfmt
-                      ]
-                    )
-                  }
-              done
-            '';
-          }
-        );
-
       }
     );
 }
