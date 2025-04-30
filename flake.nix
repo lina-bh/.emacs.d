@@ -27,32 +27,48 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        packages.emacs = self.packages.${system}.emacs-with-packages;
+        packages.default = self.packages.${system}.emacs;
 
-        packages.emacs-with-packages = emacs-overlay.lib.${system}.emacsWithPackagesFromUsePackage {
-          config = ./init.el;
-          package = pkgs.emacs30-pgtk;
-          extraEmacsPackages =
-            epkgs: with epkgs; [
-              # embark-consult
-              # caddyfile-mode
-              # markdown-mode
-              # nix-mode
-              # org
-              # gcmh
-              # auctex
-              (treesit-grammars.with-grammars (
-                gram: with gram; [
-                  tree-sitter-bash
-                  tree-sitter-dockerfile
-                  tree-sitter-java
-                  tree-sitter-json
-                  tree-sitter-tsx
-                  tree-sitter-typescript
-                ]
-              ))
-            ];
-        };
+        packages.emacs = nixpkgs.legacyPackages.${system}.emacs30-pgtk.pkgs.withPackages (
+          epkgs: with epkgs; [
+            aggressive-indent
+            auctex
+            caddyfile-mode
+            cape
+            consult
+            corfu
+            delight
+            eglot
+            embark
+            embark-consult
+            envrc
+            gcmh
+            hcl-mode
+            magit
+            marginalia
+            markdown-mode
+            modus-themes
+            nix-mode
+            orderless
+            org
+            puni
+            rust-mode
+            vterm
+            yaml-mode
+            (treesit-grammars.with-grammars (
+              gram: with gram; [
+                tree-sitter-bash
+                tree-sitter-dockerfile
+                tree-sitter-java
+                tree-sitter-json
+                tree-sitter-tsx
+                tree-sitter-typescript
+                tree-sitter-go
+                tree-sitter-rust
+              ]
+            ))
+          ]
+        );
       }
     );
 }
