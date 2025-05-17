@@ -9,10 +9,10 @@
         (move-beginning-of-line 0)
         (setq in-rule (and
                        (not (bobp))
-                       (seq-some #'looking-at '("\t"))))) ;".+:.*$"
+                       (seq-some #'looking-at '("\t" ".+:.*$"))))) ;".+:.*$"
       (if in-rule
           (insert "\t")
-        'noindent)))
+        nil)))
   (defun my-makefile-hook ()
     (setq-local whitespace-style '(tab-mark))
     (whitespace-mode))

@@ -1,4 +1,28 @@
 ;; -*- lexical-binding: t; -*-
+(defun split-and-follow-vertically ()
+  (interactive)
+  (let ((window (split-window-below)))
+    (select-window window)))
+
+(defun split-and-follow-horizontally ()
+  (interactive)
+  (let ((window (split-window-right)))
+    (select-window window)))
+
+(defun delete-frame-or-kill-emacs ()
+  (interactive)
+  (condition-case nil
+      (delete-frame nil t)
+    (error
+     (save-buffers-kill-emacs))))
+
+(defun c-w-dwim (&optional prefix)
+  (interactive "p")
+  (if (use-region-p)
+      (kill-region (region-beginning)
+                   (region-end))
+    (backward-kill-word (or prefix 1))))
+
 (use-package emacs
   :ensure nil
   :custom
@@ -15,15 +39,16 @@
   (delete-selection-mode t)
   (enable-recursive-minibuffers t)
   (frame-title-format "%b")
-  (fill-column 80)
-  (help-window-select t)
   (indent-tabs-mode nil)
   (indicate-empty-lines t)
+  (initial-major-mode #'fundamental-mode)
   (inhibit-startup-screen t)
+  (initial-scratch-message nil)
   (kill-whole-line t)
   (make-backup-files nil)
   (mouse-autoselect-window t)
   (native-comp-async-report-warnings-errors nil)
+  (read-answer-short nil)
   (read-hide-char ?\u2022)   ; BULLET
   (repeat-mode t)
   (ring-bell-function #'ignore)
@@ -31,36 +56,35 @@
   (savehist-mode t)
   (save-place-mode t)
   (sh-basic-offset 2)
-  (trusted-content '("~/.emacs.d/" "/var/home/lina/.emacs.d/"))
+  (trusted-content :all)                ; FIXME! THIS SHIT NEVER WORKS
   (use-dialog-box nil)
   (use-short-answers t)
   (vc-handled-backends nil)
-  (warning-minimum-level :error)
-  :config
-  (dolist (key '("M-u" "s-q" "<XF86Back>" "<XF86Forward>"))
-    (unbind-key key global-map))
-  (set-scroll-bar-mode 'right)
+  (warning-minimum-level :emergency)
   :hook (after-init . (lambda ()
                         (ignore-errors
                           (make-directory (locate-user-emacs-file "backups/")))))
   :bind
-  (("C-k" . kill-whole-line)
-   ("C-v" . yank)
+  (("<escape>" . exit-recursive-edit)
+   ("C-k" . kill-whole-line)
    ("C-z" . undo)
+   ("C-S-z" . undo-redo)
    ("M-;" . comment-line)
    ("M-i" . completion-at-point)
    ("M-," . pop-to-mark-command)
    ("C-," . pop-global-mark)
-   ("C-f" . find-file)
    ("C-x C-g" . keyboard-quit)
+   ("C-x x" . revert-buffer-quick)
    ("C-x C-x" . revert-buffer-quick)
    ("C-x C-c" . delete-frame-or-kill-emacs)
    ("C-w" . c-w-dwim)
    ("C-x 2" . split-and-follow-vertically)
    ("C-x 3" . split-and-follow-horizontally)
+   ("C-x 4" . display-buffer)
    ("M-<left>" . backward-word)
    ("M-<right>" . forward-word)
    ("C-<right>" . forward-sexp)
    ("C-<left>" . backward-sexp)
+   ("M-u" . nil)
    (:map minibuffer-local-map
          ("C-u" . backward-kill-sentence))))

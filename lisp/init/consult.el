@@ -10,23 +10,26 @@
   (xref-show-definitions-function #'consult-xref)
   (xref-show-xrefs-function #'consult-xref)
   :config
-  (define-advice consult-grep
-      (:around (consult-grep &rest args) ripgrep)
-    (apply (or (and (executable-find "rg" 'remote) 'consult-ripgrep)
-               consult-grep)
-           args))
-  (define-advice consult-find
-      (:around (consult-find &rest args) fd)
-    (apply (or (and (executable-find "fd" 'remote) 'consult-fd)
-               consult-find)
-           args))
+  (defun consult-grep- ()
+    (interactive)
+    (call-interactively
+     (or
+      (and (executable-find "rg" 'remote)
+           #'consult-ripgrep)
+      #'consult-grep)))
+  (defun consult-find- ()
+    (interactive)
+    (call-interactively
+     (or
+      (and (or (executable-find "fd" 'remote)
+               (executable-find "fdfind" 'remote))
+           #'consult-fd)
+      #'consult-find)))
   :bind
-  ("C-s" . consult-line)
+  ("M-s" . consult-line)
   ("M-g" . consult-imenu)
   ("M-y" . consult-yank-pop)
-  ("C-x p g" . consult-grep)
-  ("C-x p f" . consult-find)
+  ("C-x g" . consult-grep-)
+  ("C-x f" . consult-find-)
   ("C-x b" . consult-buffer)
-  ("C-b" . consult-buffer)
-  ("M-f" . consult-flymake)
   ("C-h i" . consult-info))

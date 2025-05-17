@@ -4,15 +4,17 @@
 (add-to-list 'load-path (locate-user-emacs-file "lisp/") t)
 
 (setq-default
- package-archives nil
+ package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+                    ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                    ("melpa" . "https://melpa.org/packages/"))
+ package-install-upgrade-built-in t
  use-package-always-defer t)
-
-(use-package delight
-  :ensure t)
 
 (load "funs/autoloads")
 
+(package-install 'delight)
 (autoload 'setq-mode-local "mode-local")
+
 (load "init/emacs")
 (load "init/isearch")
 (load "init/help")
@@ -50,6 +52,7 @@
 (load "init/puni")
 (load "init/yaml-mode")
 (load "init/hcl-mode")
+(load "init/nix-mode")
 ;; (load "init/nftables-mode")
 (load "init/rust-mode")
 ;; (load "init/caddyfile-mode")
@@ -75,9 +78,31 @@
 (load "init/magit")
 (load "init/faces")
 (load "init/desktop")
+(load "init/find-func")
+(load "init/eshell")
+(load "init/dockerfile-ts-mode")
+(load "init/html-ts-mode")
+
+(setopt ert-debug-on-error t)
 
 (use-package devcontainer
-  :commands devcontainer-up devcontainer-down
-  :load-path "lisp/")
+  :preface
+  (package-install-file (locate-user-emacs-file "lisp/devcontainer.el"))
+  :custom
+  (devcontainer-engine 'podman)
+  (devcontainer-dotfiles-repository "https://github.com/lina-bh/dotfiles.git"))
 
+(use-package prettier-js
+  :commands prettier-js)
 
+(use-package astro-ts-mode
+  :ensure t
+  :config
+  (defun lina-astro-hook ()
+    (display-line-numbers-mode))
+  :hook (astro-ts-mode . lina-astro-hook)
+  :mode "\\.astro\\'")
+
+(use-package css-mode
+  :bind (:map css-mode-map
+              ("C-c C-c" . recompile)))

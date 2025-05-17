@@ -21,54 +21,41 @@
       flake-utils,
       nixpkgs,
     }:
-    flake-utils.lib.eachDefaultSystem (
+    flake-utils.lib.eachDefaultSystemPassThrough (
       system:
       let
+        inherit (nixpkgs) lib;
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        packages.default = self.packages.${system}.emacs;
+        packages.${system} = {
+          default = self.packages.${system}.emacs;
 
-        packages.emacs = nixpkgs.legacyPackages.${system}.emacs30-pgtk.pkgs.withPackages (
-          epkgs: with epkgs; [
-            aggressive-indent
-            auctex
-            caddyfile-mode
-            cape
-            consult
-            corfu
-            delight
-            eglot
-            embark
-            embark-consult
-            envrc
-            gcmh
-            hcl-mode
-            magit
-            marginalia
-            markdown-mode
-            modus-themes
-            nix-mode
-            orderless
-            org
-            puni
-            rust-mode
-            vterm
-            yaml-mode
-            (treesit-grammars.with-grammars (
-              gram: with gram; [
-                tree-sitter-bash
-                tree-sitter-dockerfile
-                tree-sitter-java
-                tree-sitter-json
-                tree-sitter-tsx
-                tree-sitter-typescript
-                tree-sitter-go
-                tree-sitter-rust
-              ]
-            ))
-          ]
-        );
+          emacs =
+            let
+              emacs = pkgs.emacs30-pgtk;
+            in
+            pkgs.symlinkJoin {
+              name = "emacs";
+              nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
+              paths = [ emacs ];
+              postBuild = ''
+                for program in emacs{,-${emacs.version}}; do
+                  wrapProgram $out/bin/$program \
+                    --suffix PATH : ${
+                      lib.makeBinPath [
+                        pkgs.gcc
+                        pkgs.libtool
+                        pkgs.cmake
+                      ]
+                    } \
+                    --prefix LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.libvterm ]}
+                done
+              '';
+            };
+
+          cask = self.packages.${system}.emacs.emacs.pkgs.cask;
+        };
       }
     );
 }

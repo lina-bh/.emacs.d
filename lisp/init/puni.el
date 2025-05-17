@@ -1,13 +1,13 @@
 (use-package puni
   :ensure t
   :config
-  (defun my-puni-c-w-dwim ()
+  (defun my-puni-c-w-dwim (&optional prefix)
     "if region is active delete whats in the region. otherwise, delete the
 preceding sexp"
-    (interactive)
+    (interactive "p")
     (if (use-region-p)
         (puni-kill-region)
-      (backward-kill-sexp)))
+      (backward-kill-sexp prefix)))
   (defun my-puni-kill-whole-line ()
     "delete the whole ass line the point is on"
     (interactive)

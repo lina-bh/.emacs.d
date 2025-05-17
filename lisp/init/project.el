@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package project
   :ensure nil
   :autoload project-root
@@ -11,7 +12,7 @@
                                    "flake.nix"
                                    ".devcontainer.json"
                                    ".devcontainer/"))
-  (project-prompter #'my-project-prompt-dir)
+  (project-switch-use-entire-map t)
   :config
   (defun my-project-prompt-dir ()
     (if current-prefix-arg
@@ -23,13 +24,6 @@
     (interactive)
     (let ((default-directory (project-root (project-current))))
       (call-interactively #'add-dir-local-variable)))
-  (defun find-flake ()
-    (interactive)
-    (let ((default-directory (project-root (project-current t))))
-      (find-file "./flake.nix")))
   :bind
-  ("M-!" . project-async-shell-command)
-  ("M-&" . project-async-shell-command)
-  ;; ("C-c C-c" . project-compile)
-  ("C-x p b" . project-list-buffers)
-  ("C-x p d" . project-dired))
+  ("C-x p d" . project-dired)
+  ("C-x p s" . project-eshell))

@@ -26,7 +26,7 @@
                                "Org PDF LaTeX Output"
                                "devcontainer"
                                "Nix-REPL"))
-              ,(rx (or "shell" "vterm" "eshell") "*")
+              ,(rx (or "shell" "vterm" "eshell" "eat") "*")
               "COMMIT_EDITMSG")))
   :custom
   (display-buffer-base-action '((display-buffer-reuse-window

@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package transient
   :ensure t
   :custom (transient-display-buffer-action
@@ -11,4 +12,6 @@
   (magit-display-buffer-function #'display-buffer)
   (magit-commit-show-diff nil)
   :init
-  (magit-auto-revert-mode t))
+  (magit-auto-revert-mode t)
+  :bind
+  ("C-x G" . magit))
