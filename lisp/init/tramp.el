@@ -9,4 +9,6 @@
 (use-package tramp
   :ensure nil
   :custom
-  (tramp-verbose 2))
+  (tramp-verbose 2)
+  :init
+  (tramp-enable-method 'distrobox))

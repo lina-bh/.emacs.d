@@ -47,9 +47,9 @@
                         pkgs.gcc
                         pkgs.libtool
                         pkgs.cmake
+                        pkgs.nixfmt-rfc-style
                       ]
-                    } \
-                    --prefix LIBRARY_PATH : ${lib.makeLibraryPath [ pkgs.libvterm ]}
+                    }
                 done
               '';
             };

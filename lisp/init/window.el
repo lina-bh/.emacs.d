@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package window
   :ensure nil
   :preface
@@ -19,7 +20,6 @@
                                      'compilation)
               (category . comint)
               ,(rx bos "*" (or "Finder"
-                               ;; "Embark"
                                "TeX Help"
                                "Agenda Commands"
                                "Org Export Dispatcher"
@@ -52,4 +52,5 @@
   :bind
   (("C-x =" . balance-windows)
    ("C-x q" . quit-window)
-   ("C-x [" . previous-buffer)))
+   ("C-x [" . previous-buffer)
+   ("C-0" . delete-window)))

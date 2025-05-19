@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package xref
   :ensure nil
   :custom
@@ -11,3 +12,10 @@
       (apply xref-matches-in-files args)))
   :bind
   ("M-/" . xref-find-definitions))
+
+(use-package dumb-jump
+  :ensure t
+  :init
+  (setq-default xref-backend-functions (list
+                                        #'dumb-jump-xref-activate
+                                        #'etags--xref-backend)))

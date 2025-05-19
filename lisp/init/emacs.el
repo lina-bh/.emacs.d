@@ -12,9 +12,9 @@
 (defun delete-frame-or-kill-emacs ()
   (interactive)
   (condition-case nil
-      (delete-frame nil t)
+      (call-interactively #'delete-frame)
     (error
-     (save-buffers-kill-emacs))))
+     (call-interactively #'save-buffers-kill-emacs))))
 
 (defun c-w-dwim (&optional prefix)
   (interactive "p")
