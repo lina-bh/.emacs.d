@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package isearch
   :ensure nil
   :config
@@ -16,4 +17,5 @@
          ("<tab>" . isearch-toggle-symbol-&-regexp-)
          ("RET" . isearch-repeat-forward)
          ("<return>" . isearch-repeat-forward)
-         ("ESC" . isearch-exit))))
+         ("ESC" . isearch-exit)
+         ("<escape>" . isearch-exit))))

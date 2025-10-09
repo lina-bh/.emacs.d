@@ -87,7 +87,9 @@
 
 (use-package devcontainer
   :preface
-  (package-install-file (locate-user-emacs-file "lisp/devcontainer.el"))
+  ;; (package-install-file (locate-user-emacs-file "lisp/devcontainer.el"))
+  :load-path (lambda ()
+               (locate-user-emacs-file "lisp/devcontainer.el"))
   :custom
   (devcontainer-engine 'podman)
   (devcontainer-dotfiles-repository "https://github.com/lina-bh/dotfiles.git"))
@@ -106,3 +108,14 @@
 (use-package css-mode
   :bind (:map css-mode-map
               ("C-c C-c" . recompile)))
+
+(use-package gptel
+  :ensure t
+  :custom
+  (gptel-log-level 'debug)
+  :config
+  (setq gptel-backend (gptel-make-openai "ramalama"
+                        :protocol "http"
+                        :host "127.0.0.1:8080"
+                        :models '(deepseek)
+                        :stream t)))

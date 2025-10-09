@@ -1,10 +1,12 @@
+;; -*- lexical-binding: t; -*-
 (use-package org
   :ensure t
   :custom
   (org-adapt-indentation nil)
   (org-agenda-window-setup 'current-window)
-  (org-export-backends '(html latex))
+  (org-export-backends '(html latex md))
   (org-export-with-smart-quotes t)
+  (org-html-doctype "html5")
   (org-html-postamble nil)
   (org-link-descriptive nil)
   (org-refile-targets '((nil :maxlevel . 2)))
@@ -77,6 +79,9 @@
     (face-remap-add-relative 'variable-pitch
                              :family "Liberation Serif"
                              :height 120))
+  (defun org-insert-today ()
+    (interactive)
+    (org-insert-timestamp (current-time) nil t))
   :hook
   ((org-mode org-agenda-mode) . my-org-hook)
   (org-babel-after-execute . org-redisplay-inline-images)
@@ -88,6 +93,7 @@
         ("C-c s p" . org-latex-export-section-to-pdf)
         ("C-c '" . org-edit-special)
         ("C-c x" . org-babel-execute-buffer)
-        ("C-c C-c" . org-babel-execute-src-block))
+        ("C-c C-c" . org-babel-execute-src-block)
+        ("C-c ." . org-insert-today))
   (:map org-src-mode-map
         ("C-c C-c" . org-edit-src-exit)))

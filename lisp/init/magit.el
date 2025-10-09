@@ -14,4 +14,4 @@
   :init
   (magit-auto-revert-mode t)
   :bind
-  ("C-x G" . magit))
+  ("C-x g" . magit))
