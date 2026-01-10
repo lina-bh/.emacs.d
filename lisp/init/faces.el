@@ -1,4 +1,4 @@
-(defconst my-linux-font '(:family "Iosevka" :height 105))
+(defconst my-linux-font '(:family "Iosevka Nerd Font" :height 105))
 
 (use-package faces
   :ensure nil

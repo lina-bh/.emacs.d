@@ -1,6 +1,6 @@
 ;; -*- lexical-binding: t; -*-
 (use-package vterm
-  :ensure t
+  :ensure nil
   :commands project-vterm
   :custom
   (vterm-shell "fish")
@@ -13,7 +13,7 @@
           (vterm-buffer-name (project-prefixed-buffer-name "vterm")))
       (vterm prefix)))
   :bind
-  ("C-x p t" . project-vterm)
+  ;; ("C-x p t" . project-vterm)
   (:map vterm-mode-map
         ("M-w" . nil)
         ("C-y" . nil)

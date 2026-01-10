@@ -119,3 +119,13 @@
                         :host "127.0.0.1:8080"
                         :models '(deepseek)
                         :stream t)))
+
+(use-package eat
+  :ensure t
+  :custom
+  (eat-term-name "xterm-256color")
+  :bind
+  (:map project-prefix-map
+        ("t" . eat-project)))
+
+
