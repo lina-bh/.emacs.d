@@ -124,6 +124,8 @@
   :ensure t
   :custom
   (eat-term-name "xterm-256color")
+  :hook
+  (eshell-first-time-mode . eat-eshell-mode)
   :bind
   (:map project-prefix-map
         ("t" . eat-project)))
