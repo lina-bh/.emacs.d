@@ -11,6 +11,7 @@
   :custom
   (magit-display-buffer-function #'display-buffer)
   (magit-commit-show-diff nil)
+  (magit-patch-save-arguments nil)
   :init
   (magit-auto-revert-mode t)
   :bind

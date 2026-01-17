@@ -15,6 +15,7 @@
 
 (use-package dumb-jump
   :ensure t
+  :custom
   (xref-backend-functions (list
                            #'dumb-jump-xref-activate
                            #'etags--xref-backend)))

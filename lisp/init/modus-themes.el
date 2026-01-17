@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t; -*-
 (use-package modus-themes
   :ensure t
   :custom
@@ -24,6 +25,7 @@
        `(mode-line-inactive ((,c (:inherit nil))))
        `(tab-line-highlight ((,c (:inherit nil)))))))
   (defun my-load-modus ()
-    (load-theme 'modus-operandi t))
+    (when (display-graphic-p)
+      (load-theme 'modus-operandi t)))
   :hook (modus-themes-after-load-theme . my-modus-custom)
   :hook (after-init . my-load-modus))

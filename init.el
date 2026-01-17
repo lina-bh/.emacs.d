@@ -130,4 +130,8 @@
   (:map project-prefix-map
         ("t" . eat-project)))
 
-
+(use-package xt-mouse
+  :ensure nil
+  :init
+  (unless (display-graphic-p)
+    (xterm-mouse-mode t)))
