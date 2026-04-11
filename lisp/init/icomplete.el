@@ -1,5 +1,6 @@
 (use-package icomplete
   :ensure nil
+  :disabled t
   :custom
   (fido-vertical-mode t)
   (icomplete-matches-format "")
