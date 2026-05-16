@@ -892,16 +892,27 @@ preceding sexp"
                         :stream t)))
 
 (use-package eat
-  :ensure t
+  :disabled t
   :custom
   (eat-term-name "xterm-256color")
+  :config
+  (setq eat-semi-char-non-bound-keys
+        (let
+            ((non-bound-keys
+              (eval
+               (car
+                (get 'eat-semi-char-non-bound-keys
+                     'standard-value)))))
+          (push [?\e ?w] non-bound-keys))
+        eat-eshell-semi-char-non-bound-keys
+        eat-semi-char-non-bound-keys)
+  (eat-update-semi-char-mode-map)
+  (eat-eshell-update-semi-char-mode-map)
   :hook
   (eshell-first-time-mode . eat-eshell-mode)
   :bind
-  (:map eat-mode-map
-        ("C-u" . eat-self-input))
   (:map eat-semi-char-mode-map
-        ("M-w" . nil))
+        ("C-u" . eat-self-input))
   (:map project-prefix-map
         ("t" . eat-project)))
 
