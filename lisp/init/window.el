@@ -9,7 +9,7 @@
       xs))
   (defconst tray-buffer-criteria
     `(and (not (or ,@(match-derived-modes 'Info 'package-menu 'eww)
-                   ,(rx bos "magit-diff")
+                   ,(rx bos "magit-" (or "diff" "revision"))
                    "Shell Command"))
           (or ,@(match-derived-modes 'comint
                                      'special
@@ -50,7 +50,4 @@
       display-buffer-in-side-window
       (window-height . ,(/ 1.0 3)))))
   :bind
-  (("C-x =" . balance-windows)
-   ("C-x q" . quit-window)
-   ("C-x [" . previous-buffer)
-   ("C-0" . delete-window)))
+  ("C-x q" . quit-window))
