@@ -6,9 +6,9 @@ elpa/
 eshell/
 history
 ielm-history.eld
-places
+places*
 projects
-recentf
+recentf*
 result
 session.*
 tramp
@@ -17,3 +17,4 @@ url/
 .emacs.desktop*
 tree-sitter/
 games/
+bookmarks

@@ -31,28 +31,8 @@
         packages.${system} = {
           default = self.packages.${system}.emacs;
 
-          emacs =
-            let
-              emacs = pkgs.emacs30-pgtk;
-            in
-            pkgs.symlinkJoin {
-              name = "emacs";
-              nativeBuildInputs = [ pkgs.makeBinaryWrapper ];
-              paths = [ emacs ];
-              postBuild = ''
-                for program in emacs{,-${emacs.version}}; do
-                  wrapProgram $out/bin/$program \
-                    --suffix PATH : ${
-                      lib.makeBinPath [
-                        pkgs.gcc
-                        pkgs.libtool
-                        pkgs.cmake
-                        pkgs.nixfmt-rfc-style
-                      ]
-                    }
-                done
-              '';
-            };
+          # emacs = emacs-overlay.packages.${system}.emacs-git-pgtk.pkgs.withPackages (elpa: with elpa; [ magit ]);
+          emacs = emacs-overlay.packages.${system}.emacs-git-pgtk;
 
           cask = self.packages.${system}.emacs.emacs.pkgs.cask;
         };
