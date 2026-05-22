@@ -3,11 +3,11 @@
 
 ;;; initialisation & general behaviour
 (setq-default custom-file (locate-user-emacs-file "custom.el")
-	      use-package-always-defer t
-	      use-package-enable-imenu-support t
-	      package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
-				 ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-				 ("melpa" . "https://melpa.org/packages/")))
+              use-package-always-defer t
+              use-package-enable-imenu-support t
+              package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
+                                 ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+                                 ("melpa" . "https://melpa.org/packages/")))
 (load custom-file t)
 
 (use-package package
@@ -26,6 +26,7 @@
   (eldoc-minor-mode-string nil)
   (help-window-select t)
   (find-function-mode t)
+  (indent-tabs-mode nil)
   (inhibit-startup-screen t)
   (initial-scratch-message nil)
   (make-backup-files nil)
@@ -49,7 +50,7 @@
   ("C-," . pop-global-mark)
   ("M-;" . comment-line)
   (:map ctl-x-map
-	("x" . revert-buffer-quick)))
+        ("x" . revert-buffer-quick)))
 
 ;;; look & feel
 
@@ -57,11 +58,11 @@
   :ensure nil
   :custom
   (display-buffer-base-action '((display-buffer-reuse-window
-				 display-buffer-reuse-mode-window
-				 display-buffer-use-least-recent-window
-				 display-buffer-in-direction)
-				(mode . (lisp-interaction-mode))
-				(direction . right)))
+                                 display-buffer-reuse-mode-window
+                                 display-buffer-use-least-recent-window
+                                 display-buffer-in-direction)
+                                (mode . (lisp-interaction-mode))
+                                (direction . right)))
   (display-buffer-alist
    `(((or
        (category . comint)
@@ -105,7 +106,7 @@
   :bind
   ("M-i" . completion-at-point)
   (:map minibuffer-local-map
-	("C-u" . kill-whole-line)))
+        ("C-u" . kill-whole-line)))
 
 (use-package icomplete
   :ensure nil
@@ -116,10 +117,10 @@
   (icomplete-matches-format "")
   :bind
   (:map icomplete-minibuffer-map
-	("C-." . nil))
+        ("C-." . nil))
   (:map icomplete-fido-mode-map
-	("C-." . nil)
-	("TAB" . icomplete-fido-ret)))
+        ("C-." . nil)
+        ("TAB" . icomplete-fido-ret)))
 
 ;;; navigation
 
@@ -143,7 +144,7 @@
   ("C-s" . isearch-forward-regexp)
   ("M-s" . isearch-forward-symbol)
   (:map isearch-mode-map
-	("ESC" . isearch-exit)))
+        ("ESC" . isearch-exit)))
 
 (use-package imenu
   :ensure nil
@@ -165,7 +166,7 @@
   :ensure nil
   :bind
   (:map project-prefix-map
-	("s" . eshell)))
+        ("s" . eshell)))
 
 (use-package flymake
   :ensure t
@@ -189,16 +190,16 @@
   (dired-kill-when-opening-new-dired-buffer t)
   :bind
   (:map ctl-x-map
-	("d" . dired-jump-other-window))
+        ("d" . dired-jump-other-window))
   (:map dired-mode-map
-	([remap dired-mouse-find-file-other-window] . dired-mouse-find-file)))
+        ([remap dired-mouse-find-file-other-window] . dired-mouse-find-file)))
 
 (use-package customize
   :ensure nil
   :bind
   (:map help-map
         ("g" . customize-group-other-window)
-	("C-h" . nil)))
+        ("C-h" . nil)))
 
 (use-package conf-mode
   :ensure nil
@@ -223,21 +224,21 @@
       (:after (&rest args) readonly)
     (let ((out-buffer-name (cadr args)))
       (with-current-buffer out-buffer-name
-	(view-mode))
+        (view-mode))
       (pop-to-buffer out-buffer-name)))
   :bind
   (:map emacs-lisp-mode-map
-	("C-c C-p" . pp-macroexpand-last-sexp)))
+        ("C-c C-p" . pp-macroexpand-last-sexp)))
 
 (use-package autoinsert
   :ensure nil
   :custom
   (auto-insert-query nil)
   (auto-insert-alist (list (cons "\\.el\\'"
-				 (lambda ()
-				   (setq-local lexical-binding t)
-				   (add-file-local-variable-prop-line 'lexical-binding t)
-				   (goto-char (point-max))))))
+                                 (lambda ()
+                                   (setq-local lexical-binding t)
+                                   (add-file-local-variable-prop-line 'lexical-binding t)
+                                   (goto-char (point-max))))))
   :hook
   (emacs-lisp-mode . auto-insert))
 
@@ -247,7 +248,7 @@
   :ensure t
   :init
   (setq-mode-local emacs-lisp-mode
-		   completion-at-point-functions '(cape-elisp-symbol t)))
+                   completion-at-point-functions '(cape-elisp-symbol t)))
 
 (use-package consult
   :ensure t
@@ -258,25 +259,25 @@
   :bind
   ;; ("M-g" . consult-imenu)
   (:map ctl-x-map
-	("C-r" . consult-recent-file))
+        ("C-r" . consult-recent-file))
   (:map project-prefix-map
-	("g" . consult-grep)
-	("f" . consult-find))
+        ("g" . consult-grep)
+        ("f" . consult-find))
   (:map help-map
-	("i" . consult-info)))
+        ("i" . consult-info)))
 
 (use-package embark
   :ensure t
   :custom
   (embark-indicators '(embark-minimal-indicator
-		       embark-highlight-indicator
-		       embark-isearch-highlight-indicator))
+                       embark-highlight-indicator
+                       embark-isearch-highlight-indicator))
   (prefix-help-command #'embark-prefix-help-command)
   :bind
   ("C-." . embark-act)
   ("M-." . embark-dwim)
   (:map help-map
-	("b" . embark-bindings)))
+        ("b" . embark-bindings)))
 
 (use-package embark-consult
   :ensure t)
@@ -303,19 +304,19 @@
   (defun sp-c-w-dwim (beg end &optional prefix)
     (interactive "Rp")
     (if (and beg end)
-	(sp-kill-region beg end)
+        (sp-kill-region beg end)
       (sp-backward-kill-sexp)))
   :hook
   (smartparens-mode . lina-sp-mode-hook)
   (lisp-data-mode . smartparens-strict-mode)
   :bind
   (:map smartparens-mode-map
-	("C-w" . sp-c-w-dwim)
-	("C-c ." . sp-forward-slurp-sexp)
-	("C-c s" . sp-splice-sexp)
-	("C-c r" . sp-raise-sexp))
+        ("C-w" . sp-c-w-dwim)
+        ("C-c ." . sp-forward-slurp-sexp)
+        ("C-c s" . sp-splice-sexp)
+        ("C-c r" . sp-raise-sexp))
   (:repeat-map smartparens-mode-repeat-map
-	       ("." . sp-forward-slurp-sexp)))
+               ("." . sp-forward-slurp-sexp)))
 
 (use-package aggressive-indent
   :ensure t
@@ -328,7 +329,7 @@
   :init
   (setq-default xref-backend-functions '(dumb-jump-xref-activate))
   (setq-mode-local emacs-lisp-mode
-		   xref-backend-functions '(dumb-jump-xref-activate elisp--xref-backend t)))
+                   xref-backend-functions '(dumb-jump-xref-activate elisp--xref-backend t)))
 
 (use-package gptel
   :ensure t
@@ -339,8 +340,8 @@
   (gptel-default-mode 'markdown-ts-mode)
   :config
   (setopt gptel-backend (gptel-make-gemini "Gemini"
-			  :key (gptel-api-key-from-auth-source "generativelanguage.googleapis.com")
-			  :stream t)))
+                          :key (gptel-api-key-from-auth-source "generativelanguage.googleapis.com")
+                          :stream t)))
 
 (use-package magit
   :ensure t
@@ -350,14 +351,14 @@
   (magit-display-buffer-function #'display-buffer)
   :bind
   (:map ctl-x-map
-	("g" . magit-dispatch))
+        ("g" . magit-dispatch))
   (:map mode-specific-map
-	("g" . magit-file-dispatch)))
+        ("g" . magit-file-dispatch)))
 
 (use-package transient
   :custom
   (transient-display-buffer-action '(nil
-				     (category . transient)))
+                                     (category . transient)))
   :config
   (transient-bind-q-to-quit))
 
