@@ -7,7 +7,7 @@ eshell/
 history
 ielm-history.eld
 places*
-projects
+projects*
 recentf*
 result
 session.*
@@ -18,3 +18,6 @@ url/
 tree-sitter/
 games/
 bookmarks
+user-lisp/.user-lisp-autoloads.el*
+**/*.elc
+forge-database.sqlite
