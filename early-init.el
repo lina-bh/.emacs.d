@@ -2,7 +2,6 @@
 (setq default-frame-alist `((inhibit-default-buffering
                              .
                              ,(eq initial-window-system 'pgtk))
-                            (tty-color-mode . no)
                             (background-mode . ,(if (display-graphic-p)
                                                     'light
                                                   'dark)))
@@ -10,3 +9,6 @@
       recentf-auto-cleanup 'never
       recentf-keep nil
       gc-cons-threshold most-positive-fixnum)
+(menu-bar-mode -1)
+(autoload 'tool-bar-mode "tool-bar.el")
+(tool-bar-mode -1)

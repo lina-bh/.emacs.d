@@ -5,15 +5,20 @@
 (setq-default custom-file (locate-user-emacs-file "custom.el")
               use-package-always-defer t
               use-package-enable-imenu-support t
+              use-package-hook-name-suffix nil
               package-archives '(("gnu" . "https://elpa.gnu.org/packages/")
                                  ("nongnu" . "https://elpa.nongnu.org/nongnu/")
-                                 ("melpa" . "https://melpa.org/packages/")
-                                 ("melpa-stable" . "https://stable.melpa.org/packages/"))
-              package-archive-priorities '(("gnu" . 2)
-                                           ("nongnu" . 1)
-                                           ("melpa" . -1))
-              package-install-upgrade-built-in t)
+                                 ("melpa"
+                                  . "https://melpa.org/packages/")
+                                 ("melpa-stable"
+                                  . "https://stable.melpa.org/packages/"))
+              package-archive-priorities '(("gnu" . 3)
+                                           ("nongnu" . 2)
+                                           ("melpa-stable" . 1)))
 (load custom-file t)
+(package-initialize)
+;; (package-upgrade-all)
+(add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
 
 (use-package emacs
   :ensure nil
@@ -24,8 +29,9 @@
   (auto-save-default nil)
   (create-lockfiles nil)
   (delete-selection-mode t)
-  (eldoc-minor-mode-string nil)
+  (electric-pair-mode t)
   (enable-recursive-minibuffers t)
+  (fill-column 80)
   (garbage-collection-messages t)
   (find-function-mode t)
   (indent-tabs-mode nil)
@@ -33,79 +39,134 @@
   (initial-scratch-message nil)
   (initial-major-mode 'fundamental-mode)
   (make-backup-files nil)
-  (menu-bar-mode nil)
   (mouse-autoselect-window t)
   (repeat-mode t)
   (require-final-newline t)
   (savehist-mode t)
   (save-place-mode t)
   (save-interprogram-paste-before-kill t)
-  (tool-bar-mode nil)
+  (tab-bar-mode t)
   (use-short-answers t)
+  (vc-follow-symlinks t)
   (view-read-only t)
   (warning-minimum-level :emergency)
+  (xterm-set-window-title t)
   (xterm-mouse-mode t)
   :custom-face
   (default ((((type x pgtk)) ,linux-font)))
   (fixed-pitch ((((type x pgtk)) ,linux-font)))
   (fixed-pitch-serif ((t :inherit (fixed-pitch))))
   :hook
-  (after-init . (lambda ()
-                  (garbage-collect)
-                  (setq gc-cons-threshold (* (expt 1024 2) 16))))
-  (prog-mode . delete-trailing-whitespace-mode)
+  (prog-mode-hook . delete-trailing-whitespace-mode)
   :bind
   ("M-u" . ignore)
   ("C-z" . undo)
   ("M-," . pop-to-mark-command)
-  ("C-," . pop-global-mark)
+  ("C-," . nil)
+  ("C-." . nil)
   ("M-;" . comment-line)
   ("M-<left>" . backward-sexp)
   ("M-<right>" . forward-sexp)
   ("M-<up>" . backward-up-list)
   ("M-<down>" . down-list)
+  ("C-l" . redraw-display)
+  ("C-," . pop-global-mark)
   (:map ctl-x-map
-        ("x" . revert-buffer-quick)))
+        ("x" . revert-buffer-quick)
+        ("C-x" . revert-buffer-quick)
+        ("," . pop-global-mark)
+        ("m" . push-point-to-register)
+        ("j" . register-to-point))
+  (:map image-mode-map
+        ([remap revert-buffer] . revert-buffer-quick)))
+
+(use-package server
+  :ensure nil
+  :autoload server-running-p
+  :init
+  (defun lina/after-init-start-server ()
+    (unless (server-running-p)
+      (server-start)))
+  :hook
+  (after-init-hook . lina/after-init-start-server))
 
 ;;; look & feel
 
 (use-package window
   :ensure nil
   :custom
-  (display-buffer-base-action '(nil))
+  (display-buffer-base-action '((display-buffer-reuse-window
+                                 display-buffer-use-least-recent-window)))
   (display-buffer-alist
    `(((derived-mode . magit-revision-mode)
       display-buffer-reuse-mode-window
       (mode . magit-log-mode))
+     ("\\*Completions"
+      (display-buffer-reuse-window
+       display-buffer-at-bottom))
+     ((derived-mode . calc-mode)
+      display-buffer-at-bottom)
      ((or
        (category . comint)
        (category . warning)
        (derived-mode . flymake-diagnostics-buffer-mode)
-       (derived-mode . eshell-mode)
        (derived-mode . help-mode)
        (derived-mode . term-mode)
-       (derived-mode . inferior-emacs-lisp-mode)
-       ,(rx bos "*" (or "trace-output")))
+       (derived-mode . comint-mode)
+       ,(rx bos
+            "*"
+            (or
+             "eshell"
+             "trace-output"
+             "eldoc"
+             (and (* any) "REPL")
+             "Warnings")))
       display-buffer-in-side-window
-      (window-height . 18)
+      (window-height . 12)
       (slot . 0))
-     ("*Completions*"
-      (display-buffer-reuse-window
-       display-buffer-at-bottom))
      ((or
-       ,(rx bos "*Customize"))
+       ,(rx bos "*" (or "Customize" "Man")))
       (display-buffer-reuse-mode-window))
      (,(rx bos "*Pp")
       (display-buffer-below-selected))))
   (switch-to-buffer-in-dedicated-window 'pop)
   (switch-to-buffer-obey-display-actions t)
   (split-height-threshold nil)
-  (split-window-preferred-direction 'horizontal))
+  (split-window-preferred-direction 'horizontal)
+  :config
+  (defun split-window-right-and-select (&rest args)
+    (interactive)
+    (select-window (apply #'split-window-right args)))
+  :bind
+  ("C-x 5" . make-frame-command)
+  (:map ctl-x-map
+        ("3" . split-window-right-and-select)
+        ("q" . quit-window)))
 
 (use-package tooltip
   :ensure nil
   :custom
   (tooltip-delay 0.1))
+
+(use-package modus-themes
+  :ensure nil
+  :demand t
+  :load-path (lambda ()
+               (file-name-concat data-directory "themes"))
+  :config
+  (defun lina/load-theme ()
+    (load-theme 'modus-operandi t))
+  :hook (after-init-hook . lina/load-theme))
+
+(use-package display-fill-column-indicator
+  :ensure nil
+  :custom
+  (display-fill-column-indicator-character ?\u2595)
+  (global-display-fill-column-indicator-mode t)
+  (global-display-fill-column-indicator-modes
+   '((not special-mode text-mode racket-repl-mode comint-mode) t))
+  :custom-face
+  (fill-column-indicator ((t :background nil))))
 
 ;;; minibuffer
 
@@ -114,15 +175,15 @@
   :custom-face
   (completions-annotations ((t :underline nil :inherit (italic shadow))))
   :custom
-  ;; (completion-category-overrides nil)
-  ;; (completion-category-overrides '((command (styles substring))
-  ;;                                  (symbol-help (styles substring))
-  ;;                                  (file (styles substring))))
-  (completion-styles '(emacs22 partial-completion))
+  (completion-ignore-case t)
   (completion-pcm-leading-wildcard t)
+  (completion-show-help nil)
+  (completion-styles '(emacs22 partial-completion))
   (completions-detailed t)
   (completions-group t)
+  (completions-max-height 6)
   (read-buffer-completion-ignore-case t)
+  (read-file-name-completion-ignore-case t)
   :bind
   ("M-i" . completion-at-point)
   (:map minibuffer-local-map
@@ -135,13 +196,14 @@
   :custom
   (recentf-mode t)
   (recentf-max-saved-items nil)
-  (recentf-exclude (list (rx bos "/nix/store"))))
+  (recentf-exclude (list (rx bos "/nix/store" (* any)))))
 
 (use-package xref
   :ensure nil
   :custom
   (xref-prompt-for-identifier nil)
-  (xref-show-definitions-function #'xref-show-definitions-completing-read))
+  (xref-show-definitions-function
+   #'xref-show-definitions-completing-read))
 
 (use-package isearch
   :ensure nil
@@ -152,22 +214,11 @@
   (:map isearch-mode-map
         ("ESC" . isearch-exit)))
 
-(use-package imenu
-  :ensure nil
-  :custom
-  (imenu-auto-rescan t)
-  (imenu-flatten 'annotation)
-  :bind
-  ("M-g" . imenu))
-
 (use-package find-func
   :ensure nil
   :custom
   (find-function-mode t)
-  :bind
-  (:map find-function-mode-map
-        ("C-x f" . find-function-other-window)
-        ("C-x C-l" . find-library-other-window)))
+  (find-function-mode-lower-precedence t))
 
 (use-package savehist
   :ensure nil
@@ -179,9 +230,14 @@
 
 (use-package tramp
   :ensure nil
+  :demand t
   :custom
-  (tramp-save-ad-hoc-proxies t)
-  (tramp-show-ad-hoc-proxies t))
+  (tramp-show-ad-hoc-proxies t)
+  :config
+  (advice-add #'tramp-recentf-cleanup :override #'ignore)
+  (advice-add #'tramp-recentf-cleanup-all :override #'ignore)
+  (tramp-enable-method 'podman)
+  (tramp-enable-method 'distrobox))
 
 (use-package eshell
   :ensure nil
@@ -199,10 +255,16 @@
         ("C-u" . eshell-kill-input)))
 
 (use-package flymake
-  :ensure t
-  :pin gnu
+  :ensure nil
+  :custom
+  (flymake-show-diagnostics-at-end-of-line t)
   :hook
-  ((sh-base-mode) . flymake-mode))
+  ((sh-base-mode-hook python-mode-hook) . flymake-mode)
+  :bind
+  (:map project-prefix-map
+        ("n" . flymake-show-project-diagnostics))
+  (:map flymake-mode-map
+        ("C-x n" . flymake-show-buffer-diagnostics)))
 
 (use-package project
   :ensure nil
@@ -210,30 +272,48 @@
   (:map project-prefix-map
         ("d" . project-dired)))
 
+(require 'eglot)
+(setopt eglot-stay-out-of '(flymake))
+(add-hook 'eglot-managed-mode-hook
+          (defun lina/eglot-hook ()
+            (eglot-inlay-hints-mode
+             (if (member major-mode '(python-mode python-ts-mode))
+                 -1
+               t))
+            (add-hook 'flymake-diagnostic-functions
+                      #'eglot-flymake-backend nil t)
+            (flymake-mode t)))
+
 ;;; built-in major modes
 
 (use-package treesit
   :ensure nil
   :defines treesit-language-source-alist
   :init
-  (setf (alist-get 'nix treesit-language-source-alist) '("https://github.com/nix-community/tree-sitter-nix.git" "v0.3.0"))
+  (setf (alist-get 'nix treesit-language-source-alist)
+        '("https://github.com/nix-community/tree-sitter-nix.git"
+          "v0.3.0"))
   :custom
   (treesit-auto-install-grammar 'always)
-  (treesit-enabled-modes '(bash-ts-mode markdown-ts-mode))
+  (treesit-enabled-modes '(c-ts-mode
+                           bash-ts-mode
+                           markdown-ts-mode))
   (treesit-font-lock-level 4))
 
 (use-package dired
   :ensure nil
   :custom
-  (dired-listing-switches "-alZ")
   (dired-kill-when-opening-new-dired-buffer t)
+  (dired-listing-switches "-alZ")
+  (dired-auto-revert-buffer t)
   :hook
-  (dired-mode . dired-hide-details-mode)
+  (dired-mode-hook . dired-hide-details-mode)
   :bind
   (:map ctl-x-map
         ("d" . dired-jump-other-window))
   (:map dired-mode-map
-        ([remap dired-mouse-find-file-other-window] . dired-mouse-find-file)))
+        ([remap dired-mouse-find-file-other-window]
+         . dired-mouse-find-file)))
 
 (use-package customize
   :ensure nil
@@ -248,6 +328,7 @@
   (help-window-select t)
   :bind
   (:map help-mode-map
+        ("," . help-go-back)
         ("p" . help-go-back)))
 
 (use-package info
@@ -259,10 +340,13 @@
 (use-package conf-mode
   :ensure nil
   :mode
-  ((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode))
+  ((rx "." (or "container" "volume" "service" "pod") eos)
+   . conf-desktop-mode))
 
 (use-package js
   :ensure nil
+  :custom
+  (js-indent-level 2)
   :mode ((rx ".conflist" eos) . js-json-mode))
 
 (use-package sh-script
@@ -272,6 +356,13 @@
 
 (use-package elisp-mode
   :ensure nil
+  :config
+  (defun lina/elisp-hook ()
+    (when (and (buffer-file-name)
+               (file-in-directory-p (buffer-file-name)
+                                    package-user-dir))
+      (view-mode)))
+  :hook (emacs-lisp-mode-hook . lina/elisp-hook)
   :bind
   (:map emacs-lisp-mode-map
         ("C-c C-c" . elisp-eval-region-or-buffer)))
@@ -282,9 +373,18 @@
   (comint-prompt-read-only t)
   :bind
   (:map comint-mode-map
-        ("C-c C-c" . comint-kill-whole-line)
         ("<up>" . comint-previous-input)
         ("<down>" . comint-next-input)))
+
+(use-package ielm
+  :ensure nil
+  :config
+  (defun lina/ielm-interrupt ()
+    (interactive)
+    (comint-skip-input)
+    (ielm-return))
+  :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c"
+                                            . lina/ielm-interrupt)))
 
 (use-package dockerfile-ts-mode
   :ensure nil
@@ -294,18 +394,32 @@
   :ensure nil
   :mode ((rx "." (or "yaml" "yml") eos)))
 
+(use-package python
+  :ensure nil
+  :custom
+  (python-flymake-command '("ruff"
+                            "check"
+                            "--quiet"
+                            "--output-format=concise"
+                            "--stdin-filename=stdin"))
+  (python-indent-guess-indent-offset-verbose nil)
+  :config
+  (defun lina/python-hook ()
+    (set-fill-column 80))
+  :hook (python-mode-hook . lina/python-hook))
+
 ;;; built-in minor modes
 
 (use-package pp
   :ensure nil
   :config
   (define-advice pp-display-expression
-      (:after (&rest args) readonly)
-    (let ((out-buffer-name (cadr args)))
-      (with-current-buffer out-buffer-name
-        (view-mode))
-      (pop-to-buffer out-buffer-name)))
+      (:after (_expression out-buffer-name &optional _lisp) readonly)
+    (with-current-buffer out-buffer-name
+      (view-mode))
+    (pop-to-buffer out-buffer-name))
   :bind
+  ("M-;" . pp-eval-expression)
   (:map emacs-lisp-mode-map
         ("C-c C-p" . pp-macroexpand-last-sexp)))
 
@@ -319,12 +433,18 @@
                                    (add-file-local-variable-prop-line 'lexical-binding t)
                                    (goto-char (point-max))))))
   :hook
-  (emacs-lisp-mode . auto-insert))
+  (emacs-lisp-mode-hook . auto-insert))
 
 (use-package autorevert
   :ensure nil
   :custom
   (auto-revert-mode-text ""))
+
+(use-package eldoc
+  :ensure nil
+  :custom
+  (eldoc-minor-mode-string nil)
+  (eldoc-echo-area-use-multiline-p nil))
 
 ;;; third-party completion
 
@@ -343,14 +463,17 @@
   :pin gnu
   :init
   (setq-mode-local emacs-lisp-mode
-                   completion-at-point-functions '(cape-elisp-symbol t)))
+                   completion-at-point-functions '(cape-elisp-symbol t))
+  (setq-mode-local autoconf-mode
+                   completion-at-point-functions '(cape-dabbrev t))
+  :bind
+  ("M-/" . cape-dabbrev))
 
 (use-package consult
   :ensure t
   :pin gnu
   :custom
   (consult-async-split-style nil)
-  (completion-in-region-function #'consult-completion-in-region)
   (xref-show-xrefs-function #'consult-xref)
   :config
   (defun consult-ripgrep-or-grep ()
@@ -360,9 +483,16 @@
      (if (executable-find "rg" t)
          #'consult-ripgrep
        #'consult-grep)))
+  (defun lina/consult-minibuffer-completion-hook ()
+    (setq-local completion-in-region-function
+                #'consult-completion-in-region))
+  :hook (minibuffer-mode-hook
+         . lina/consult-minibuffer-completion-hook)
   :bind
+  ("M-g" . consult-imenu)
   (:map ctl-x-map
-        ("C-r" . consult-recent-file))
+        ("C-r" . consult-recent-file)
+        ("r" . consult-bookmark))
   (:map project-prefix-map
         ("g" . consult-ripgrep-or-grep)
         ("f" . consult-find))
@@ -373,13 +503,16 @@
   :ensure t
   :pin gnu
   :custom
+  (embark-cycle-key "TAB")
   (embark-indicators '(embark-minimal-indicator
                        embark-highlight-indicator
                        embark-isearch-highlight-indicator))
   (prefix-help-command #'embark-prefix-help-command)
   :bind
   ("C-." . embark-act)
-  ("M-." . embark-act)
+  ("M-." . embark-dwim)
+  (:map ctl-x-map
+        ("." . embark-act))
   (:map help-map
         ("b" . embark-bindings)))
 
@@ -389,54 +522,39 @@
 
 (use-package orderless
   :ensure t
+  :pin gnu
   :demand t
   :custom
   (completion-category-overrides '((command (styles orderless))
-                                   (symbol-help (styles orderless)))))
+                                   (symbol-help (styles orderless))))
+  (orderless-component-separator "[- ]"))
+
+(use-package corfu
+  :ensure t
+  :custom
+  (corfu-cycle t)
+  (corfu-quit-at-boundary nil)
+  (corfu-quit-no-match nil)
+  (global-corfu-minibuffer nil)
+  (global-corfu-mode t)
+  (global-corfu-modes '((not comint-mode eshell-mode) t))
+  :bind (:map corfu-map
+              ("TAB" . corfu-next)
+              ("<backtab>" . corfu-previous)))
 
 ;;; third-party minor modes
 
-(use-package smartparens
-  :ensure t
-  :pin melpa-stable
-  :init
-  (require 'smartparens-config)
-  :custom
-  (sp-echo-match-when-invisible nil)
-  (sp-escape-quotes-after-insert nil)
-  (sp-highlight-pair-overlay nil)
-  (smartparens-global-mode t)
-  :config
-  (defun lina-sp-mode-hook ()
-    (show-paren-local-mode -1)
-    (show-smartparens-mode t))
-  (defun sp-c-w-dwim ()
-    (interactive)
-    (if (use-region-p)
-        (sp-kill-region (region-beginning) (region-end))
-      (sp-backward-kill-sexp current-prefix-arg)))
-  :hook
-  (smartparens-mode . lina-sp-mode-hook)
-  (lisp-data-mode . smartparens-strict-mode)
-  :bind
-  (:map smartparens-mode-map
-        ("C-w" . sp-c-w-dwim)
-        ("C-c ." . sp-forward-slurp-sexp)
-        ("C-c s" . sp-splice-sexp)
-        ("C-c r" . sp-raise-sexp)
-        ("M-<left>" . sp-backward-sexp)
-        ("M-<right>" . sp-forward-sexp))
-  (:repeat-map smartparens-mode-repeat-map
-               ("." . sp-forward-slurp-sexp)))
+(require 'lina-smartparens)
 
 (use-package aggressive-indent
   :ensure t
   :pin gnu
-  :hook (lisp-data-mode . aggressive-indent-mode))
+  :hook (lisp-data-mode-hook . aggressive-indent-mode))
 
-(use-package hungry-delete
+(use-package gcmh
   :ensure t
-  :hook (aggressive-indent-mode . hungry-delete-mode))
+  :delight gcmh-mode
+  :hook (after-init-hook . gcmh-mode))
 
 ;;; third-party integrations
 
@@ -445,19 +563,29 @@
   :init
   (setq-default xref-backend-functions '(dumb-jump-xref-activate))
   (setq-mode-local emacs-lisp-mode
-                   xref-backend-functions '(dumb-jump-xref-activate elisp--xref-backend t)))
+                   xref-backend-functions
+                   '(dumb-jump-xref-activate elisp--xref-backend t)))
 
 (use-package gptel
   :pin nongnu
   :custom
   (gptel-log-level 'debug)
-  (gptel-include-reasoning t)
   (gptel-model 'gemini-2.5-flash)
   (gptel-default-mode 'markdown-ts-mode)
+  (gptel-directives '((default . "\
+Assume the following:
+* Respond as a computer program to which language is the interface.
+* Do not respond conversationally, but concisely.
+* Suggest methods and symbols, and sparingly example code blocks.
+* Do not rewrite files and return them.")))
   :config
+  (defun lina/gptel-hook ()
+    (local-set-key (kbd "C-c C-c") #'gptel-send))
   (setopt gptel-backend (gptel-make-gemini "Gemini"
                           :key (gptel-api-key-from-auth-source "generativelanguage.googleapis.com")
-                          :stream t)))
+                          :stream t))
+
+  :hook (gptel-mode-hook . lina/gptel-hook))
 
 (use-package magit
   :ensure t
@@ -487,6 +615,37 @@
 
 (use-package with-editor
   :ensure t
-  :hook (eshell-mode . with-editor-export-editor))
+  :pin nongnu
+  :hook (eshell-mode-hook . with-editor-export-editor))
+
+(use-package ruff-format
+  :hook (python-mode-hook . ruff-format-on-save-mode))
+
+(use-package delight
+  :ensure t)
 
 ;;; third-party major modes
+
+(use-package nix-ts-mode
+  :init
+  (setf (alist-get 'nix-mode major-mode-remap-alist) 'nix-ts-mode)
+  :mode "\\.nix\\'")
+
+(use-package racket-mode
+  :custom
+  (racket-xp-eldoc-level 'complete)
+  :hook (racket-mode-hook . racket-xp-mode)
+  :mode "\\.rkt\\'")
+
+(use-package inf-clojure
+  :custom
+  (inf-clojure-custom-repl-type 'clojure)
+  :custom
+  (defun lina/inf-clojure-eval-last-sexp-and-go ()
+    (interactive)
+    (inf-clojure-eval-last-sexp t))
+  :hook (clojure-ts-mode-hook . inf-clojure-minor-mode)
+  :bind (:map inf-clojure-minor-mode-map
+              ("C-c C-p" . inf-clojure-switch-to-repl)
+              ([remap inf-clojure-eval-last-sexp]
+               . lina/inf-clojure-eval-last-sexp-and-go)))

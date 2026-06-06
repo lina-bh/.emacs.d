@@ -32,9 +32,9 @@
           default = self.packages.${system}.emacs;
 
           # emacs = emacs-overlay.packages.${system}.emacs-git-pgtk.pkgs.withPackages (elpa: with elpa; [ magit ]);
-          emacs = emacs-overlay.packages.${system}.emacs-git-pgtk;
+          emacs = emacs-overlay.packages.${system}.emacs-git-nox;
 
-          cask = self.packages.${system}.emacs.emacs.pkgs.cask;
+          # cask = self.packages.${system}.emacs.emacs.pkgs.cask;
         };
       }
     );
