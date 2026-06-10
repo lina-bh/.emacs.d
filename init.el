@@ -20,65 +20,69 @@
 ;; (package-upgrade-all)
 (add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
 
-(use-package emacs
-  :ensure nil
-  :preface
-  (defconst linux-font '(:family "Iosevka Nerd Font" :height 105))
-  :custom
-  (auth-sources '("~/.authinfo"))
-  (auto-save-default nil)
-  (create-lockfiles nil)
-  (delete-selection-mode t)
-  (electric-pair-mode t)
-  (enable-recursive-minibuffers t)
-  (fill-column 80)
-  (garbage-collection-messages t)
-  (find-function-mode t)
-  (indent-tabs-mode nil)
-  (inhibit-startup-screen t)
-  (initial-scratch-message nil)
-  (initial-major-mode 'fundamental-mode)
-  (make-backup-files nil)
-  (mouse-autoselect-window t)
-  (repeat-mode t)
-  (require-final-newline t)
-  (savehist-mode t)
-  (save-place-mode t)
-  (save-interprogram-paste-before-kill t)
-  (tab-bar-mode t)
-  (use-short-answers t)
-  (vc-follow-symlinks t)
-  (view-read-only t)
-  (warning-minimum-level :emergency)
-  (xterm-set-window-title t)
-  (xterm-mouse-mode t)
-  :custom-face
-  (default ((((type x pgtk)) ,linux-font)))
-  (fixed-pitch ((((type x pgtk)) ,linux-font)))
-  (fixed-pitch-serif ((t :inherit (fixed-pitch))))
-  :hook
-  (prog-mode-hook . delete-trailing-whitespace-mode)
-  :bind
-  ("M-u" . ignore)
-  ("C-z" . undo)
-  ("M-," . pop-to-mark-command)
-  ("C-," . nil)
-  ("C-." . nil)
-  ("M-;" . comment-line)
-  ("M-<left>" . backward-sexp)
-  ("M-<right>" . forward-sexp)
-  ("M-<up>" . backward-up-list)
-  ("M-<down>" . down-list)
-  ("C-l" . redraw-display)
-  ("C-," . pop-global-mark)
-  (:map ctl-x-map
-        ("x" . revert-buffer-quick)
-        ("C-x" . revert-buffer-quick)
-        ("," . pop-global-mark)
-        ("m" . push-point-to-register)
-        ("j" . register-to-point))
-  (:map image-mode-map
-        ([remap revert-buffer] . revert-buffer-quick)))
+;;;; emacs
+
+(setopt auth-sources '("~/.authinfo")
+        auto-save-default nil
+        backward-delete-char-untabify-method 'hungry
+        bidi-inhibit-bpa t
+        bidi-paragraph-direction 'left-to-right
+        column-number-mode t
+        create-lockfiles nil
+        cursor-in-non-selected-windows nil
+        delete-selection-mode t
+        enable-recursive-minibuffers t
+        extended-command-suggest-shorter nil
+        fast-but-imprecise-scrolling t
+        fill-column 80
+        garbage-collection-messages t
+        indent-tabs-mode nil
+        inhibit-startup-screen t
+        initial-scratch-message nil
+        initial-major-mode 'fundamental-mode
+        kill-do-not-save-duplicates t
+        kill-region-dwim 'emacs-word
+        make-backup-files nil
+        mouse-autoselect-window t
+        read-extended-command-predicate #'command-completion-default-include-p
+        read-process-output-max 1048576
+        redisplay-skip-fontification-on-input t
+        repeat-mode t
+        require-final-newline t
+        savehist-mode t
+        save-place-mode t
+        suggest-key-bindings nil
+        tab-always-indent 'complete
+        tab-bar-mode t
+        tooltip-delay 0.1
+        use-dialog-box nil
+        use-short-answers t
+        vc-follow-symlinks t
+        view-read-only t
+        warning-minimum-level :emergency
+        xterm-set-window-title t
+        xterm-mouse-mode t)
+
+(bind-keys ("M-u" . ignore)
+           ("C-z" . undo)
+           ("C-S-z" . undo-redo)
+           ("M-," . pop-to-mark-command)
+           ("M-;" . comment-line)
+           ("C-l" . redraw-display)
+           ("C-x x" . revert-buffer-quick)
+           ("C-x C-x" . revert-buffer-quick)
+           ("C-x m" . push-point-to-register)
+           ("C-x j" . register-to-point)
+           ("C-x C-g" . ignore)
+           ("C-," . pop-global-mark))
+
+(add-hook 'prog-mode-hook #'delete-trailing-whitespace-mode)
+(add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
+
+(defconst linux-font '(:family "Iosevka Nerd Font" :height 105))
+(face-spec-set 'default `((((type x pgtk)) ,linux-font)))
+(face-spec-set 'fixed-pitch `((((type x pgtk)) ,linux-font)))
+(face-spec-set 'fixed-pitch-serif '((t :inherit (fixed-pitch))))
 
 (use-package server
   :ensure nil
@@ -106,21 +110,24 @@
        display-buffer-at-bottom))
      ((derived-mode . calc-mode)
       display-buffer-at-bottom)
-     ((or
-       (category . comint)
-       (category . warning)
-       (derived-mode . flymake-diagnostics-buffer-mode)
-       (derived-mode . help-mode)
-       (derived-mode . term-mode)
-       (derived-mode . comint-mode)
-       ,(rx bos
-            "*"
-            (or
-             "eshell"
-             "trace-output"
-             "eldoc"
-             (and (* any) "REPL")
-             "Warnings")))
+     ((and
+       (not ,(rx bos "*Async Shell Command*" eos))
+       (or
+        (category . comint)
+        (category . warning)
+        (derived-mode . flymake-diagnostics-buffer-mode)
+        (derived-mode . help-mode)
+        (derived-mode . term-mode)
+        (derived-mode . comint-mode)
+        ,(rx bos
+             "*"
+             (or
+              "eshell"
+              "trace-output"
+              "eldoc"
+              (and (* any) "REPL")
+              "Warnings"
+              "Compile-Log"))))
       display-buffer-in-side-window
       (window-height . 12)
       (slot . 0))
@@ -131,40 +138,31 @@
       (display-buffer-below-selected))))
   (switch-to-buffer-in-dedicated-window 'pop)
   (switch-to-buffer-obey-display-actions t)
-  (split-height-threshold nil)
   (split-window-preferred-direction 'horizontal)
   :config
   (defun split-window-right-and-select (&rest args)
     (interactive)
     (select-window (apply #'split-window-right args)))
+  (defun split-window-below-and-select (&rest args)
+    (interactive)
+    (select-window (apply #'split-window-below args)))
   :bind
+  ("C-x 2" . split-window-below-and-select)
+  ("C-x 3" . split-window-right-and-select)
   ("C-x 5" . make-frame-command)
-  (:map ctl-x-map
-        ("3" . split-window-right-and-select)
-        ("q" . quit-window)))
+  ("C-x q" . quit-window)
+  ("C-x o" . other-window)
+  ("C-x 4" . other-window-prefix))
 
-(use-package tooltip
-  :ensure nil
-  :custom
-  (tooltip-delay 0.1))
-
-(use-package modus-themes
-  :ensure nil
-  :demand t
-  :load-path (lambda ()
-               (file-name-concat data-directory "themes"))
-  :config
-  (defun lina/load-theme ()
-    (load-theme 'modus-operandi t))
-  :hook (after-init-hook . lina/load-theme))
+(require-theme 'modus-themes)
+(add-hook 'after-init-hook (apply-partially #'load-theme 'modus-operandi t))
 
 (use-package display-fill-column-indicator
   :ensure nil
   :custom
-  (display-fill-column-indicator-character ?\u2595)
+  (display-fill-column-indicator-character nil)
   (global-display-fill-column-indicator-mode t)
-  (global-display-fill-column-indicator-modes
-   '((not special-mode text-mode racket-repl-mode comint-mode) t))
+  (global-display-fill-column-indicator-modes '(prog-mode))
   :custom-face
   (fill-column-indicator ((t :background nil))))
 
@@ -178,7 +176,6 @@
   (completion-ignore-case t)
   (completion-pcm-leading-wildcard t)
   (completion-show-help nil)
-  (completion-styles '(emacs22 partial-completion))
   (completions-detailed t)
   (completions-group t)
   (completions-max-height 6)
@@ -239,20 +236,39 @@
   (tramp-enable-method 'podman)
   (tramp-enable-method 'distrobox))
 
+(use-package shell
+  :ensure nil
+  :custom
+  (shell-kill-buffer-on-exit t))
+
 (use-package eshell
   :ensure nil
   :custom
+  (eshell-scroll-to-bottom-on-input t)
   (eshell-visual-subcommands '(("bootc" "update")))
+  :config
+  (defun lina/eshell-in-buffer-directory ()
+    (interactive)
+    (let ((bufdir default-directory))
+      (with-current-buffer (eshell)
+        (unless (string= bufdir default-directory)
+          (eshell/cd `(,bufdir))
+          (eshell-reset)))))
   :bind
   (:map project-prefix-map
-        ("s" . eshell)))
+        ("s" . lina/eshell-in-buffer-directory)))
 
 (use-package esh-mode
   :ensure nil
+  :config
+  (defun lina/eshell-hook ()
+    (electric-pair-local-mode -1))
+  :hook (eshell-mode-hook . lina/eshell-hook)
   :bind
   (:map eshell-mode-map
         ("C-w" . unix-word-rubout)
-        ("C-u" . eshell-kill-input)))
+        ("C-u" . eshell-kill-input)
+        ("C-d" . eshell-send-eof-to-process)))
 
 (use-package flymake
   :ensure nil
@@ -276,12 +292,10 @@
 (setopt eglot-stay-out-of '(flymake))
 (add-hook 'eglot-managed-mode-hook
           (defun lina/eglot-hook ()
-            (eglot-inlay-hints-mode
-             (if (member major-mode '(python-mode python-ts-mode))
-                 -1
-               t))
-            (add-hook 'flymake-diagnostic-functions
-                      #'eglot-flymake-backend nil t)
+            (eglot-inlay-hints-mode (if (member major-mode '(python-mode python-ts-mode))
+                                        -1
+                                      t))
+            (add-hook 'flymake-diagnostic-functions #'eglot-flymake-backend nil t)
             (flymake-mode t)))
 
 ;;; built-in major modes
@@ -296,8 +310,7 @@
   :custom
   (treesit-auto-install-grammar 'always)
   (treesit-enabled-modes '(c-ts-mode
-                           bash-ts-mode
-                           markdown-ts-mode))
+                           bash-ts-mode))
   (treesit-font-lock-level 4))
 
 (use-package dired
@@ -310,7 +323,7 @@
   (dired-mode-hook . dired-hide-details-mode)
   :bind
   (:map ctl-x-map
-        ("d" . dired-jump-other-window))
+        ("d" . dired-jump))
   (:map dired-mode-map
         ([remap dired-mouse-find-file-other-window]
          . dired-mouse-find-file)))
@@ -319,20 +332,23 @@
   :ensure nil
   :bind
   (:map help-map
-        ("g" . customize-group-other-window)
-        ("C-h" . nil)))
+        ("g" . customize-group-other-window)))
 
 (use-package help
   :ensure nil
   :custom
   (help-window-select t)
   :bind
+  (:map help-map
+        ("C-h" . nil)
+        ("C-g" . help-quit))
   (:map help-mode-map
         ("," . help-go-back)
         ("p" . help-go-back)))
 
 (use-package info
   :ensure nil
+  :defines Info-mode-map
   :bind
   (:map help-map
         ("s" . info-lookup-symbol)))
@@ -340,8 +356,8 @@
 (use-package conf-mode
   :ensure nil
   :mode
-  ((rx "." (or "container" "volume" "service" "pod") eos)
-   . conf-desktop-mode))
+  ((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
+  ((rx "/isyncrc" eos) . conf-space-mode))
 
 (use-package js
   :ensure nil
@@ -359,22 +375,24 @@
   :config
   (defun lina/elisp-hook ()
     (when (and (buffer-file-name)
-               (file-in-directory-p (buffer-file-name)
-                                    package-user-dir))
+               (file-in-directory-p (buffer-file-name) package-user-dir))
       (view-mode)))
+  (defun autoload-cookie ()
+    (interactive)
+    (save-excursion
+      (beginning-of-defun)
+      (insert ";;;###autoload\n")))
   :hook (emacs-lisp-mode-hook . lina/elisp-hook)
-  :bind
-  (:map emacs-lisp-mode-map
-        ("C-c C-c" . elisp-eval-region-or-buffer)))
+  :bind (:map emacs-lisp-mode-map
+              ("C-c C-c" . elisp-eval-region-or-buffer)))
 
 (use-package comint
   :ensure nil
   :custom
   (comint-prompt-read-only t)
-  :bind
-  (:map comint-mode-map
-        ("<up>" . comint-previous-input)
-        ("<down>" . comint-next-input)))
+  :bind (:map comint-mode-map
+              ("<up>" . comint-previous-input)
+              ("<down>" . comint-next-input)))
 
 (use-package ielm
   :ensure nil
@@ -383,8 +401,7 @@
     (interactive)
     (comint-skip-input)
     (ielm-return))
-  :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c"
-                                            . lina/ielm-interrupt)))
+  :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c" . lina/ielm-interrupt)))
 
 (use-package dockerfile-ts-mode
   :ensure nil
@@ -402,11 +419,12 @@
                             "--quiet"
                             "--output-format=concise"
                             "--stdin-filename=stdin"))
-  (python-indent-guess-indent-offset-verbose nil)
-  :config
-  (defun lina/python-hook ()
-    (set-fill-column 80))
-  :hook (python-mode-hook . lina/python-hook))
+  (python-indent-guess-indent-offset-verbose nil))
+
+(use-package image-mode
+  :ensure nil
+  :bind (:map image-mode-map
+              ([remap revert-buffer] . revert-buffer-quick)))
 
 ;;; built-in minor modes
 
@@ -419,7 +437,7 @@
       (view-mode))
     (pop-to-buffer out-buffer-name))
   :bind
-  ("M-;" . pp-eval-expression)
+  ("M-:" . pp-eval-expression)
   (:map emacs-lisp-mode-map
         ("C-c C-p" . pp-macroexpand-last-sexp)))
 
@@ -479,15 +497,12 @@
   (defun consult-ripgrep-or-grep ()
     "If ripgrep is available, search with `consult-ripgrep'. Otherwise, search with `consult-grep'."
     (interactive)
-    (call-interactively
-     (if (executable-find "rg" t)
-         #'consult-ripgrep
-       #'consult-grep)))
+    (call-interactively (if (executable-find "rg" t)
+                            #'consult-ripgrep
+                          #'consult-grep)))
   (defun lina/consult-minibuffer-completion-hook ()
-    (setq-local completion-in-region-function
-                #'consult-completion-in-region))
-  :hook (minibuffer-mode-hook
-         . lina/consult-minibuffer-completion-hook)
+    (setq-local completion-in-region-function #'consult-completion-in-region))
+  :hook (minibuffer-mode-hook . lina/consult-minibuffer-completion-hook)
   :bind
   ("M-g" . consult-imenu)
   (:map ctl-x-map
@@ -497,7 +512,9 @@
         ("g" . consult-ripgrep-or-grep)
         ("f" . consult-find))
   (:map help-map
-        ("i" . consult-info)))
+        ("i" . consult-info))
+  (:package info :map Info-mode-map
+        ("s" . consult-info)))
 
 (use-package embark
   :ensure t
@@ -511,8 +528,7 @@
   :bind
   ("C-." . embark-act)
   ("M-." . embark-dwim)
-  (:map ctl-x-map
-        ("." . embark-act))
+  ("C-x ." . embark-act)
   (:map help-map
         ("b" . embark-bindings)))
 
@@ -525,9 +541,14 @@
   :pin gnu
   :demand t
   :custom
-  (completion-category-overrides '((command (styles orderless))
-                                   (symbol-help (styles orderless))))
-  (orderless-component-separator "[- ]"))
+  (completion-styles '(emacs22 partial-completion orderless))
+  (completion-category-overrides `((buffer (styles substring))
+                                   ,@(mapcar (lambda (cat)
+                                               (list cat '(styles orderless)))
+                                             '(command symbol function variable symbol-help))))
+  (orderless-component-separator "[- ]")
+  :config
+  (setq-mode-local emacs-lisp-mode completion-styles '(orderless)))
 
 (use-package corfu
   :ensure t
@@ -541,6 +562,11 @@
   :bind (:map corfu-map
               ("TAB" . corfu-next)
               ("<backtab>" . corfu-previous)))
+
+(use-package marginalia
+  :vc (:url "https://github.com/minad/marginalia.git" :rev "2.11" :lisp-dir "lisp/")
+  :custom
+  (marginalia-mode t))
 
 ;;; third-party minor modes
 
@@ -571,7 +597,6 @@
   :custom
   (gptel-log-level 'debug)
   (gptel-model 'gemini-2.5-flash)
-  (gptel-default-mode 'markdown-ts-mode)
   (gptel-directives '((default . "\
 Assume the following:
 * Respond as a computer program to which language is the interface.
@@ -594,6 +619,7 @@ Assume the following:
   (setq magit-define-global-key-bindings nil)
   :custom
   (magit-display-buffer-function #'display-buffer)
+  (magit-commit-show-diff nil)
   :bind
   (:map ctl-x-map
         ("g" . magit-dispatch))
@@ -649,3 +675,21 @@ Assume the following:
               ("C-c C-p" . inf-clojure-switch-to-repl)
               ([remap inf-clojure-eval-last-sexp]
                . lina/inf-clojure-eval-last-sexp-and-go)))
+
+(use-package inheritenv
+  :init
+  (unless (fboundp 'inheritenv-add-advice)
+    (autoload 'inheritenv-add-advice "inheritenv" "Advise function FUNC with `inheritenv-apply'.
+This will ensure that any buffers (including temporary buffers)
+created by FUNC will inherit the caller's environment." nil 'macro)))
+
+(use-package kubed
+  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "cac448bd" :lisp-dir "lisp/")
+  :config
+  ;; (inheritenv-add-advice #'kubed-current-context)
+  ;; (inheritenv-add-advice #'kubed-display-resource-revert)
+  ;; (inheritenv-add-advice #'kubed-list-select-resource)
+  :bind
+  ("C-c k" . kubed-transient))
+
+(require 'lina-mail)

@@ -1,8 +1,6 @@
 {
   nixConfig = {
-    extra-substituters = [
-      "https://nix-community.cachix.org"
-    ];
+    extra-substituters = [ "https://nix-community.cachix.org" ];
     extra-trusted-public-keys = [
       "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="
     ];
@@ -31,10 +29,9 @@
         packages.${system} = {
           default = self.packages.${system}.emacs;
 
-          # emacs = emacs-overlay.packages.${system}.emacs-git-pgtk.pkgs.withPackages (elpa: with elpa; [ magit ]);
-          emacs = emacs-overlay.packages.${system}.emacs-git-nox;
-
-          # cask = self.packages.${system}.emacs.emacs.pkgs.cask;
+          emacs = emacs-overlay.packages.${system}.emacs-git-pgtk.pkgs.withPackages (
+            elpa: with elpa; [ mu4e ]
+          );
         };
       }
     );

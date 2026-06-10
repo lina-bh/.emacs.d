@@ -8,6 +8,7 @@
   :init
   (require 'smartparens-config)
   :custom
+  (electric-pair-mode nil)
   (sp-echo-match-when-invisible nil)
   (sp-escape-quotes-after-insert nil)
   (sp-highlight-pair-overlay nil)
@@ -44,8 +45,10 @@
         ("C-c ." . sp-forward-slurp-sexp)
         ("C-c s" . sp-splice-sexp)
         ("C-c r" . sp-raise-sexp)
-        ("M-<left>" . sp-backward-sexp)
-        ("M-<right>" . sp-forward-sexp))
+        ("M-<up>" . sp-backward-up-sexp)
+        ("M-<down>" . sp-down-sexp)
+        ("M-<left>" . sp-backward-parallel-sexp)
+        ("M-<right>" . sp-forward-parallel-sexp))
   (:repeat-map smartparens-mode-repeat-map
                ("." . sp-forward-slurp-sexp)))
 
