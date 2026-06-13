@@ -17,72 +17,88 @@
                                            ("melpa-stable" . 1)))
 (load custom-file t)
 (package-initialize)
-;; (package-upgrade-all)
 (add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
+(with-eval-after-load 'package-vc
+  (setq-default vc-handled-backends '(Git)))
 
 ;;;; emacs
 
-(setopt auth-sources '("~/.authinfo")
-        auto-save-default nil
-        backward-delete-char-untabify-method 'hungry
-        bidi-inhibit-bpa t
-        bidi-paragraph-direction 'left-to-right
-        column-number-mode t
-        create-lockfiles nil
-        cursor-in-non-selected-windows nil
-        delete-selection-mode t
-        enable-recursive-minibuffers t
-        extended-command-suggest-shorter nil
-        fast-but-imprecise-scrolling t
-        fill-column 80
-        garbage-collection-messages t
-        indent-tabs-mode nil
-        inhibit-startup-screen t
-        initial-scratch-message nil
-        initial-major-mode 'fundamental-mode
-        kill-do-not-save-duplicates t
-        kill-region-dwim 'emacs-word
-        make-backup-files nil
-        mouse-autoselect-window t
-        read-extended-command-predicate #'command-completion-default-include-p
-        read-process-output-max 1048576
-        redisplay-skip-fontification-on-input t
-        repeat-mode t
-        require-final-newline t
-        savehist-mode t
-        save-place-mode t
-        suggest-key-bindings nil
-        tab-always-indent 'complete
-        tab-bar-mode t
-        tooltip-delay 0.1
-        use-dialog-box nil
-        use-short-answers t
-        vc-follow-symlinks t
-        view-read-only t
-        warning-minimum-level :emergency
-        xterm-set-window-title t
-        xterm-mouse-mode t)
+(use-package emacs
+  :ensure nil
+  :preface
+  (defconst linux-font '(:family "Iosevka Nerd Font" :height 105))
+  :init
+  (setopt auth-sources '("~/.authinfo")
+          backward-delete-char-untabify-method 'hungry
+          bidi-inhibit-bpa t
+          bidi-paragraph-direction 'left-to-right
+          create-lockfiles nil
+          cursor-in-non-selected-windows nil
+          enable-recursive-minibuffers t
+          fast-but-imprecise-scrolling t
+          fill-column 80
+          garbage-collection-messages t
+          mouse-autoselect-window t
+          native-comp-async-on-battery-power nil
+          native-comp-async-report-warnings-errors 'silent
+          read-process-output-max 1048576
+          redisplay-skip-fontification-on-input t
+          tab-always-indent 'complete
+          tooltip-delay 0.1
+          use-dialog-box nil
+          use-short-answers t
+          vc-follow-symlinks t
+          warning-minimum-level :emergency
+          xterm-set-window-title t
+          xterm-mouse-mode t)
+  :custom-face
+  (default ((((type x pgtk)) ,linux-font)))
+  (fixed-pitch ((((type x pgtk)) ,linux-font)))
+  (fixed-pitch-serif ((t :inherit (fixed-pitch))))
+  :hook
+  ((after-save-hook . executable-make-buffer-file-executable-if-script-p))
+  :bind (("M-u" . ignore)
+         ("M-;" . comment-line)
+         ("C-l" . redraw-display)
+         ;; ("C-x m" . push-point-to-register)
+         ("C-x j" . register-to-point)
+         ("C-x C-g" . ignore)))
 
-(bind-keys ("M-u" . ignore)
-           ("C-z" . undo)
-           ("C-S-z" . undo-redo)
-           ("M-," . pop-to-mark-command)
-           ("M-;" . comment-line)
-           ("C-l" . redraw-display)
-           ("C-x x" . revert-buffer-quick)
-           ("C-x C-x" . revert-buffer-quick)
-           ("C-x m" . push-point-to-register)
-           ("C-x j" . register-to-point)
-           ("C-x C-g" . ignore)
-           ("C-," . pop-global-mark))
+(use-package startup
+  :ensure nil
+  :custom
+  ((inhibit-startup-screen t)
+   (initial-scratch-message nil)
+   (initial-major-mode 'fundamental-mode)))
 
-(add-hook 'prog-mode-hook #'delete-trailing-whitespace-mode)
-(add-hook 'after-save-hook #'executable-make-buffer-file-executable-if-script-p)
+(use-package simple
+  :ensure nil
+  :custom
+  ((column-number-mode t)
+   (extended-command-suggest-shorter nil)
+   (indent-tabs-mode nil)
+   (kill-do-not-save-duplicates t)
+   (kill-region-dwim 'emacs-word)
+   (read-extended-command-predicate #'command-completion-default-include-p)
+   (suggest-key-bindings nil))
+  :hook ((prog-mode-hook . delete-trailing-whitespace-mode))
+  :bind (("C-k" . kill-whole-line)
+         ("C-z" . undo)
+         ("C-S-z" . undo-redo)
+         ("M-," . pop-to-mark-command)
+         ("C-," . pop-global-mark)))
 
-(defconst linux-font '(:family "Iosevka Nerd Font" :height 105))
-(face-spec-set 'default `((((type x pgtk)) ,linux-font)))
-(face-spec-set 'fixed-pitch `((((type x pgtk)) ,linux-font)))
-(face-spec-set 'fixed-pitch-serif '((t :inherit (fixed-pitch))))
+(use-package files
+  :ensure nil
+  :custom
+  ((auto-save-default nil)
+   (confirm-kill-processes nil)
+   (make-backup-files nil)
+   (require-final-newline t)
+   (view-read-only t))
+  :bind
+  ("C-x x" . revert-buffer-quick)
+  ("C-x C-x" . revert-buffer-quick))
 
 (use-package server
   :ensure nil
@@ -102,9 +118,12 @@
   (display-buffer-base-action '((display-buffer-reuse-window
                                  display-buffer-use-least-recent-window)))
   (display-buffer-alist
-   `(((derived-mode . magit-revision-mode)
-      display-buffer-reuse-mode-window
-      (mode . magit-log-mode))
+   `(
+     ;; ((derived-mode . mu4e-view-mode)
+     ;;  display-buffer-in-atom-window)
+     ((derived-mode . magit-mode)
+      (display-buffer-reuse-mode-window)
+      (mode . magit-mode))
      ("\\*Completions"
       (display-buffer-reuse-window
        display-buffer-at-bottom))
@@ -135,7 +154,9 @@
        ,(rx bos "*" (or "Customize" "Man")))
       (display-buffer-reuse-mode-window))
      (,(rx bos "*Pp")
-      (display-buffer-below-selected))))
+      (display-buffer-reuse-window
+       display-buffer-below-selected)
+      (dedicated . t))))
   (switch-to-buffer-in-dedicated-window 'pop)
   (switch-to-buffer-obey-display-actions t)
   (split-window-preferred-direction 'horizontal)
@@ -179,6 +200,7 @@
   (completions-detailed t)
   (completions-group t)
   (completions-max-height 6)
+  (minibuffer-nonselected-mode nil)
   (read-buffer-completion-ignore-case t)
   (read-file-name-completion-ignore-case t)
   :bind
@@ -222,6 +244,11 @@
   :custom
   (savehist-mode t)
   (savehist-additional-variables '(kill-ring)))
+
+(use-package saveplace
+  :ensure nil
+  :custom
+  (save-place-mode t))
 
 ;;; integrations
 
@@ -353,6 +380,12 @@
   (:map help-map
         ("s" . info-lookup-symbol)))
 
+(use-package man
+  :ensure nil
+  :config
+  (define-advice Man-notify-when-ready (:override (buffer) display-buffer)
+    (display-buffer buffer)))
+
 (use-package conf-mode
   :ensure nil
   :mode
@@ -464,6 +497,16 @@
   (eldoc-minor-mode-string nil)
   (eldoc-echo-area-use-multiline-p nil))
 
+(use-package delsel
+  :ensure nil
+  :custom
+  (delete-selection-mode t))
+
+(use-package repeat
+  :ensure nil
+  :custom
+  (repeat-mode t))
+
 ;;; third-party completion
 
 (use-package vertico
@@ -479,6 +522,8 @@
 (use-package cape
   :ensure t
   :pin gnu
+  :custom
+  (cape-elisp-symbol-wrapper nil)
   :init
   (setq-mode-local emacs-lisp-mode
                    completion-at-point-functions '(cape-elisp-symbol t))
@@ -525,16 +570,33 @@
                        embark-highlight-indicator
                        embark-isearch-highlight-indicator))
   (prefix-help-command #'embark-prefix-help-command)
+  :config
+  (defun embark-isearch-symbol-forward ()
+    "`embark-isearch-forward' but `isearch-forward-symbol'."
+    (interactive)
+    (isearch-mode t nil nil nil 'isearch-symbol-regexp)
+    (isearch-edit-string))
+  (require 'cl-lib)
+  (add-to-list 'embark-pre-action-hooks '(consult-ripgrep-or-grep embark--unmark-target))
+  (add-to-list 'embark-target-injection-hooks '(consult-ripgrep-or-grep embark--allow-edit))
+  (add-to-list 'embark-multitarget-actions #'consult-ripgrep-or-grep)
   :bind
-  ("C-." . embark-act)
-  ("M-." . embark-dwim)
-  ("C-x ." . embark-act)
-  (:map help-map
-        ("b" . embark-bindings)))
+  (("C-." . embark-act)
+   ("M-." . embark-dwim)
+   ("C-x ." . embark-act)
+   (:map help-map
+         ("b" . embark-bindings))
+   (:map embark-general-map
+         ("C-s" . embark-isearch-symbol-forward)
+         ("g" . consult-ripgrep-or-grep))
+   (:map embark-command-map
+         ("g" . nil))))
 
 (use-package embark-consult
   :ensure t
-  :pin gnu)
+  :pin gnu
+  :config
+  (add-to-list 'embark-around-action-hooks '(consult-ripgrep-or-grep #'embark-consult--async-search-dwim)))
 
 (use-package orderless
   :ensure t
@@ -564,7 +626,7 @@
               ("<backtab>" . corfu-previous)))
 
 (use-package marginalia
-  :vc (:url "https://github.com/minad/marginalia.git" :rev "2.11" :lisp-dir "lisp/")
+  :ensure t
   :custom
   (marginalia-mode t))
 
@@ -684,11 +746,7 @@ This will ensure that any buffers (including temporary buffers)
 created by FUNC will inherit the caller's environment." nil 'macro)))
 
 (use-package kubed
-  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "cac448bd" :lisp-dir "lisp/")
-  :config
-  ;; (inheritenv-add-advice #'kubed-current-context)
-  ;; (inheritenv-add-advice #'kubed-display-resource-revert)
-  ;; (inheritenv-add-advice #'kubed-list-select-resource)
+  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "scratch/direnv-kubeconfig-support")
   :bind
   ("C-c k" . kubed-transient))
 

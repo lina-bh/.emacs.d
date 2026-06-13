@@ -17,21 +17,30 @@
                             (:maildir ,mu4e-trash-folder :key ?t)
                             (:maildir ,mu4e-drafts-folder :key ?d)
                             (:maildir ,mu4e-refile-folder :key ?a)))
-  (mu4e-bookmarks '(( :name "INBOX"
+  (mu4e-bookmarks `(( :name "INBOX"
                       :key ?i
-                      :query "maildir:/INBOX"
+                      :query ,(format "maildir:/INBOX AND NOT (flag:trashed OR maildir:%s)"
+                                      mu4e-trash-folder)
                       :favorite t)))
   (mu4e-split-view 'single-window)
+  (mu4e-modeline-mode nil)
+  (mu4e-confirm-quit nil)
+  :config
+  (defun lina/message-mbsync-push-sent ()
+    (let ((mu4e-get-mail-command "mbsync --push push:Sent"))
+      (mu4e-update-mail-and-index)))
   :bind
-  (:map mu4e-headers-mode-map
-        ("r" . mu4e-compose-wide-reply)
-        ("R" . mu4e-compose-wide-reply)))
+  (("C-x m" . mu4e-jump-to-favorite)
+   (:map mu4e-headers-mode-map
+         ("q" . mu4e-quit))
+   (:map mu4e-compose-minor-mode-map
+         ("R" . mu4e-compose-wide-reply))))
 
 (use-package message
   :ensure nil
   :custom
   (message-kill-buffer-on-exit t)
-  (message-hidden-headers nil))
+  (message-hidden-headers '("^References:")))
 
 (use-package smtpmail
   :ensure nil
@@ -55,13 +64,13 @@
   (gnus-newsgroup-maximum-articles gnus-large-newsgroup)
   :hook (gnus-article-mode-hook . scroll-lock-mode)
   :bind
-  (:map gnus-summary-mode-map
-        ("n" . next-line)
-        ("p" . previous-line)
-        ("RET" . gnus-summary-select-article-buffer))
   (:map gnus-article-mode-map
         ("n" . gnus-summary-next-article)
         ("p" . gnus-summary-prev-article)
-        ("q" . gnus-article-show-summary)))
+        ("q" . gnus-article-show-summary))
+  (:map gnus-summary-mode-map
+        ("n" . gnus-summary-next-article)
+        ("p" . gnus-summary-prev-article)
+        ("b" . gnus-article-prev-page)))
 
 (provide 'lina-mail)
