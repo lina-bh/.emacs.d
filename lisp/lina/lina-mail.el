@@ -1,4 +1,7 @@
 ;; -*- lexical-binding: t; -*-
+(eval-when-compile
+  (require 'cl-lib))
+
 (use-package mu4e
   :custom
   (mail-user-agent 'mu4e-user-agent)
@@ -8,7 +11,7 @@
   (mu4e-trash-folder "/Trash")
   (mu4e-refile-folder "/Archive")
   (mu4e-drafts-folder "/Drafts")
-  (mu4e-get-mail-command "mbsync -a")
+  (mu4e-get-mail-command (format "mbsync --verbose %s" user-mail-address))
   (mu4e-completing-read-function #'completing-read)
   (mu4e-read-option-use-builtin nil)
   (mu4e-change-filenames-when-moving t)
@@ -26,9 +29,19 @@
   (mu4e-modeline-mode nil)
   (mu4e-confirm-quit nil)
   :config
-  (defun lina/message-mbsync-push-sent ()
-    (let ((mu4e-get-mail-command "mbsync --push push:Sent"))
-      (mu4e-update-mail-and-index)))
+  (defun lina/mu4e-compose-mbsync-push-sent ()
+    (let (mu4e-get-mail-command)
+      (catch t
+        (setq mu4e-get-mail-command (format "mbsync --push %s:%s"
+                                            user-mail-address
+                                            (substring (cl-case mu4e-message-post-action
+                                                         ('postpone mu4e-drafts-folder)
+                                                         ('send mu4e-sent-folder)
+                                                         (t (throw nil nil)))
+                                                       1)))
+        (mu4e-update-mail-and-index t))))
+  :hook
+  (mu4e-compose-post-hook . lina/mu4e-compose-mbsync-push-sent)
   :bind
   (("C-x m" . mu4e-jump-to-favorite)
    (:map mu4e-headers-mode-map

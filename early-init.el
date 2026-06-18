@@ -11,6 +11,6 @@
       gc-cons-threshold most-positive-fixnum
       vc-handled-backends nil
       load-prefer-newer t)
-(menu-bar-mode -1)
-(autoload 'tool-bar-mode "tool-bar.el")
-(tool-bar-mode -1)
+;; (autoload 'tool-bar-mode "tool-bar.el")
+(when (fboundp 'tool-bar-mode)
+  (tool-bar-mode -1))

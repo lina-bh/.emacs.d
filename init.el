@@ -43,6 +43,8 @@
           native-comp-async-report-warnings-errors 'silent
           read-process-output-max 1048576
           redisplay-skip-fontification-on-input t
+          max-redisplay-ticks 1000000
+          scroll-conservatively 100
           tab-always-indent 'complete
           tooltip-delay 0.1
           use-dialog-box nil
@@ -121,9 +123,9 @@
    `(
      ;; ((derived-mode . mu4e-view-mode)
      ;;  display-buffer-in-atom-window)
-     ((derived-mode . magit-mode)
+     ((derived-mode . magit-diff-mode)
       (display-buffer-reuse-mode-window)
-      (mode . magit-mode))
+      (mode . magit-log-mode))
      ("\\*Completions"
       (display-buffer-reuse-window
        display-buffer-at-bottom))
@@ -151,8 +153,13 @@
       (window-height . 12)
       (slot . 0))
      ((or
-       ,(rx bos "*" (or "Customize" "Man")))
-      (display-buffer-reuse-mode-window))
+       (category . man)
+       (major-mode . Man-mode)
+       ,(rx bos "*Man"))
+      (display-buffer-reuse-mode-window)
+      (mode . Man-mode))
+     (,(rx bos "*Customize")
+      display-buffer-reuse-mode-window)
      (,(rx bos "*Pp")
       (display-buffer-reuse-window
        display-buffer-below-selected)
@@ -325,6 +332,16 @@
             (add-hook 'flymake-diagnostic-functions #'eglot-flymake-backend nil t)
             (flymake-mode t)))
 
+(use-package ispell
+  :ensure nil
+  :custom
+  (ispell-dictionary "en_GB"))
+
+(use-package browse-url
+  :ensure nil
+  :custom
+  (browse-url-handlers `((,(rx ".pdf" eos) . browse-url--browser))))
+
 ;;; built-in major modes
 
 (use-package treesit
@@ -343,9 +360,12 @@
 (use-package dired
   :ensure nil
   :custom
+  (delete-by-moving-to-trash t)
+  (dired-auto-revert-buffer t)
+  (dired-clean-confirm-killing-deleted-buffers nil)
   (dired-kill-when-opening-new-dired-buffer t)
   (dired-listing-switches "-alZ")
-  (dired-auto-revert-buffer t)
+  (dired-recursive-deletes 'always)
   :hook
   (dired-mode-hook . dired-hide-details-mode)
   :bind
@@ -384,13 +404,16 @@
   :ensure nil
   :config
   (define-advice Man-notify-when-ready (:override (buffer) display-buffer)
-    (display-buffer buffer)))
+    "Call `display-buffer' with BUFFER and action (category . man)."
+    (display-buffer buffer '(nil (category . man)))))
 
 (use-package conf-mode
   :ensure nil
   :mode
-  ((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
-  ((rx "/isyncrc" eos) . conf-space-mode))
+  (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
+   ((rx "/isyncrc" eos) . conf-space-mode)
+   ((rx ".ovpn" eos) . conf-space-mode)
+   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ any) ".conf" eos) . conf-space-mode)))
 
 (use-package js
   :ensure nil
@@ -409,8 +432,12 @@
   (defun lina/elisp-hook ()
     (when (and (buffer-file-name)
                (file-in-directory-p (buffer-file-name) package-user-dir))
-      (view-mode)))
+      (view-mode))
+    (outline-minor-mode t)
+    (setq-local imenu-generic-expression (append imenu-generic-expression
+                                                 outline-imenu-generic-expression)))
   (defun autoload-cookie ()
+    "Insert an autoload cookie above the current defun."
     (interactive)
     (save-excursion
       (beginning-of-defun)
@@ -439,10 +466,6 @@
 (use-package dockerfile-ts-mode
   :ensure nil
   :mode ((rx (or "Docker" "Container") "file" (* any) eos)))
-
-(use-package yaml-ts-mode
-  :ensure nil
-  :mode ((rx "." (or "yaml" "yml") eos)))
 
 (use-package python
   :ensure nil
@@ -507,6 +530,13 @@
   :custom
   (repeat-mode t))
 
+(use-package outline
+  :ensure nil
+  :custom
+  (outline-minor-mode-prefix (kbd "C-c ;"))
+  (outline-imenu-generic-expression
+   `((nil ,(concat "^\\(?:" outline-regexp "\\).*$") 0))))
+
 ;;; third-party completion
 
 (use-package vertico
@@ -539,12 +569,13 @@
   (consult-async-split-style nil)
   (xref-show-xrefs-function #'consult-xref)
   :config
-  (defun consult-ripgrep-or-grep ()
+  (defun consult-ripgrep-or-grep (&optional dir initial)
     "If ripgrep is available, search with `consult-ripgrep'. Otherwise, search with `consult-grep'."
-    (interactive)
-    (call-interactively (if (executable-find "rg" t)
-                            #'consult-ripgrep
-                          #'consult-grep)))
+    (interactive "P")
+    (funcall (if (executable-find "rg" t)
+                 #'consult-ripgrep
+               #'consult-grep))
+    dir initial)
   (defun lina/consult-minibuffer-completion-hook ()
     (setq-local completion-in-region-function #'consult-completion-in-region))
   :hook (minibuffer-mode-hook . lina/consult-minibuffer-completion-hook)
@@ -559,7 +590,7 @@
   (:map help-map
         ("i" . consult-info))
   (:package info :map Info-mode-map
-        ("s" . consult-info)))
+            ("s" . consult-info)))
 
 (use-package embark
   :ensure t
@@ -590,13 +621,13 @@
          ("C-s" . embark-isearch-symbol-forward)
          ("g" . consult-ripgrep-or-grep))
    (:map embark-command-map
-         ("g" . nil))))
+         ("g" . consult-ripgrep-or-grep))))
 
 (use-package embark-consult
   :ensure t
   :pin gnu
   :config
-  (add-to-list 'embark-around-action-hooks '(consult-ripgrep-or-grep #'embark-consult--async-search-dwim)))
+  (add-to-list 'embark-around-action-hooks '(consult-ripgrep-or-grep embark-consult--async-search-dwim)))
 
 (use-package orderless
   :ensure t
@@ -719,25 +750,6 @@ Assume the following:
   (setf (alist-get 'nix-mode major-mode-remap-alist) 'nix-ts-mode)
   :mode "\\.nix\\'")
 
-(use-package racket-mode
-  :custom
-  (racket-xp-eldoc-level 'complete)
-  :hook (racket-mode-hook . racket-xp-mode)
-  :mode "\\.rkt\\'")
-
-(use-package inf-clojure
-  :custom
-  (inf-clojure-custom-repl-type 'clojure)
-  :custom
-  (defun lina/inf-clojure-eval-last-sexp-and-go ()
-    (interactive)
-    (inf-clojure-eval-last-sexp t))
-  :hook (clojure-ts-mode-hook . inf-clojure-minor-mode)
-  :bind (:map inf-clojure-minor-mode-map
-              ("C-c C-p" . inf-clojure-switch-to-repl)
-              ([remap inf-clojure-eval-last-sexp]
-               . lina/inf-clojure-eval-last-sexp-and-go)))
-
 (use-package inheritenv
   :init
   (unless (fboundp 'inheritenv-add-advice)
@@ -746,8 +758,12 @@ This will ensure that any buffers (including temporary buffers)
 created by FUNC will inherit the caller's environment." nil 'macro)))
 
 (use-package kubed
-  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "scratch/direnv-kubeconfig-support")
+  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "v0.7.0")
   :bind
   ("C-c k" . kubed-transient))
+
+(use-package yaml-mode
+  :ensure t
+  :mode ((rx "." (or "yaml" "yml") eos)))
 
 (require 'lina-mail)

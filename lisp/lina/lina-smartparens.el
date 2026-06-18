@@ -54,6 +54,7 @@
 
 (use-package hungry-delete
   :ensure t
+  :disabled t
   :hook (prog-mode-hook . hungry-delete-mode))
 
 (provide 'lina-smartparens)
