@@ -83,7 +83,9 @@
    (kill-region-dwim 'emacs-word)
    (read-extended-command-predicate #'command-completion-default-include-p)
    (suggest-key-bindings nil))
-  :hook ((prog-mode-hook . delete-trailing-whitespace-mode))
+  :config
+  (when (>= emacs-major-version 31)
+    (add-hook 'prog-mode-hook #'delete-trailing-whitespace-mode))
   :bind (("C-k" . kill-whole-line)
          ("C-z" . undo)
          ("C-S-z" . undo-redo)
@@ -644,6 +646,8 @@
   (setq-mode-local emacs-lisp-mode completion-styles '(orderless)))
 
 (use-package corfu
+  :if (or (display-graphic-p)
+          (>= emacs-major-version 31))
   :ensure t
   :custom
   (corfu-cycle t)
@@ -706,7 +710,6 @@ Assume the following:
   :hook (gptel-mode-hook . lina/gptel-hook))
 
 (use-package magit
-  :ensure t
   :pin nongnu
   :preface
   (setq magit-define-global-key-bindings nil)
