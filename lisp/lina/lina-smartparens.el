@@ -29,7 +29,7 @@
     (indent-according-to-mode))
   (dolist (it '("{" "[" "("))
     (sp-local-pair
-     '(c-ts-mode) it nil
+     '(c-ts-mode js-json-mode) it nil
      :post-handlers '((lina/sp-open-newline-between-pairs
                        "RET"))))
   :hook
@@ -39,6 +39,7 @@
    . smartparens-strict-mode)
   :bind
   (:map smartparens-mode-map
+        ("DEL" . sp-backward-delete-char)
         ("C-t" . sp-transpose-sexp)
         ("C-w" . lina/sp-c-w-dwim)
         ("C-k" . sp-kill-whole-line)
@@ -53,8 +54,8 @@
                ("." . sp-forward-slurp-sexp)))
 
 (use-package hungry-delete
-  :ensure t
-  :disabled t
-  :hook (prog-mode-hook . hungry-delete-mode))
+  :ensure
+  :custom
+  (global-hungry-delete-mode t))
 
 (provide 'lina-smartparens)

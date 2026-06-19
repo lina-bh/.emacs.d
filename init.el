@@ -57,8 +57,6 @@
   (default ((((type x pgtk)) ,linux-font)))
   (fixed-pitch ((((type x pgtk)) ,linux-font)))
   (fixed-pitch-serif ((t :inherit (fixed-pitch))))
-  :hook
-  ((after-save-hook . executable-make-buffer-file-executable-if-script-p))
   :bind (("M-u" . ignore)
          ("M-;" . comment-line)
          ("C-l" . redraw-display)
@@ -381,7 +379,8 @@
   :ensure nil
   :bind
   (:map help-map
-        ("g" . customize-group-other-window)))
+        ("g" . customize-group-other-window)
+        ("u" . customize-variable-other-window)))
 
 (use-package help
   :ensure nil
@@ -426,18 +425,27 @@
 (use-package sh-script
   :ensure nil
   :custom
-  (sh-basic-offset 2))
+  (sh-basic-offset 2)
+  :mode
+  ((rx "/.env" (opt ".local")) . sh-mode))
 
 (use-package elisp-mode
   :ensure nil
   :config
   (defun lina/elisp-hook ()
-    (when (and (buffer-file-name)
-               (file-in-directory-p (buffer-file-name) package-user-dir))
-      (view-mode))
-    (outline-minor-mode t)
-    (setq-local imenu-generic-expression (append imenu-generic-expression
-                                                 outline-imenu-generic-expression)))
+    (catch 'lina/elisp-hook
+      (when (and (buffer-file-name)
+                 (file-in-directory-p (buffer-file-name) package-user-dir))
+        (view-mode)
+        (throw 'lina/elisp-hook))
+      (setq-local
+       outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
+       outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ any)) 0))
+       ;; "^\\(?:" outline-regexp "\\).*$"
+       imenu-generic-expression (append outline-imenu-generic-expression
+                                        imenu-generic-expression)))
+    (when (fboundp 'corfu-mode)
+      (corfu-mode t)))
   (defun autoload-cookie ()
     "Insert an autoload cookie above the current defun."
     (interactive)
@@ -467,6 +475,9 @@
 
 (use-package dockerfile-ts-mode
   :ensure nil
+  :config
+  (setq-mode-local dockerfile-ts-mode indent-line-function
+                   #'indent-relative-first-indent-point)
   :mode ((rx (or "Docker" "Container") "file" (* any) eos)))
 
 (use-package python
@@ -535,9 +546,7 @@
 (use-package outline
   :ensure nil
   :custom
-  (outline-minor-mode-prefix (kbd "C-c ;"))
-  (outline-imenu-generic-expression
-   `((nil ,(concat "^\\(?:" outline-regexp "\\).*$") 0))))
+  (outline-minor-mode-prefix (kbd "C-c ;")))
 
 ;;; third-party completion
 
@@ -569,6 +578,7 @@
   :pin gnu
   :custom
   (consult-async-split-style nil)
+  (consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --glob=!TAGS")
   (xref-show-xrefs-function #'consult-xref)
   :config
   (defun consult-ripgrep-or-grep (&optional dir initial)
@@ -609,10 +619,6 @@
     (interactive)
     (isearch-mode t nil nil nil 'isearch-symbol-regexp)
     (isearch-edit-string))
-  (require 'cl-lib)
-  (add-to-list 'embark-pre-action-hooks '(consult-ripgrep-or-grep embark--unmark-target))
-  (add-to-list 'embark-target-injection-hooks '(consult-ripgrep-or-grep embark--allow-edit))
-  (add-to-list 'embark-multitarget-actions #'consult-ripgrep-or-grep)
   :bind
   (("C-." . embark-act)
    ("M-." . embark-dwim)
@@ -620,16 +626,11 @@
    (:map help-map
          ("b" . embark-bindings))
    (:map embark-general-map
-         ("C-s" . embark-isearch-symbol-forward)
-         ("g" . consult-ripgrep-or-grep))
-   (:map embark-command-map
-         ("g" . consult-ripgrep-or-grep))))
+         ("C-s" . embark-isearch-symbol-forward))))
 
 (use-package embark-consult
   :ensure t
-  :pin gnu
-  :config
-  (add-to-list 'embark-around-action-hooks '(consult-ripgrep-or-grep embark-consult--async-search-dwim)))
+  :pin gnu)
 
 (use-package orderless
   :ensure t
