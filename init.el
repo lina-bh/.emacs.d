@@ -26,7 +26,7 @@
 (use-package emacs
   :ensure nil
   :preface
-  (defconst linux-font '(:family "Iosevka Nerd Font" :height 105))
+  (defconst linux-font '(:family "Iosevka" :height 105))
   :init
   (setopt auth-sources '("~/.authinfo")
           backward-delete-char-untabify-method 'hungry
@@ -44,6 +44,7 @@
           read-process-output-max 1048576
           redisplay-skip-fontification-on-input t
           max-redisplay-ticks 1000000
+          ring-bell-function #'ignore
           scroll-conservatively 100
           tab-always-indent 'complete
           tooltip-delay 0.1
@@ -82,7 +83,7 @@
    (read-extended-command-predicate #'command-completion-default-include-p)
    (suggest-key-bindings nil))
   :config
-  (when (>= emacs-major-version 31)
+  (when (fboundp 'delete-trailing-whitespace-mode)
     (add-hook 'prog-mode-hook #'delete-trailing-whitespace-mode))
   :bind (("C-k" . kill-whole-line)
          ("C-z" . undo)
@@ -121,8 +122,8 @@
                                  display-buffer-use-least-recent-window)))
   (display-buffer-alist
    `(
-     ;; ((derived-mode . mu4e-view-mode)
-     ;;  display-buffer-in-atom-window)
+     ((derived-mode . Info-mode)
+      display-buffer-reuse-mode-window)
      ((derived-mode . magit-diff-mode)
       (display-buffer-reuse-mode-window)
       (mode . magit-log-mode))
@@ -192,7 +193,7 @@
   (global-display-fill-column-indicator-mode t)
   (global-display-fill-column-indicator-modes '(prog-mode))
   :custom-face
-  (fill-column-indicator ((t :background nil))))
+  (fill-column-indicator ((t :foreground ,"grey" :background unspecified))))
 
 ;;; minibuffer
 
@@ -262,6 +263,7 @@
 (use-package tramp
   :ensure nil
   :demand t
+  :autoload tramp-recentf-cleanup tramp-recentf-cleanup-all tramp-enable-method
   :custom
   (tramp-show-ad-hoc-proxies t)
   :config
@@ -275,8 +277,22 @@
   :custom
   (shell-kill-buffer-on-exit t))
 
+(use-package esh-mode
+  :ensure nil
+  :autoload eshell-reset
+  :config
+  (defun lina/eshell-hook ()
+    (electric-pair-local-mode -1))
+  :hook (eshell-mode-hook . lina/eshell-hook)
+  :bind
+  (:map eshell-mode-map
+        ("C-w" . unix-word-rubout)
+        ("C-u" . eshell-kill-input)
+        ("C-d" . eshell-send-eof-to-process)))
+
 (use-package eshell
   :ensure nil
+  :functions eshell/cd
   :custom
   (eshell-scroll-to-bottom-on-input t)
   (eshell-visual-subcommands '(("bootc" "update")))
@@ -292,24 +308,14 @@
   (:map project-prefix-map
         ("s" . lina/eshell-in-buffer-directory)))
 
-(use-package esh-mode
-  :ensure nil
-  :config
-  (defun lina/eshell-hook ()
-    (electric-pair-local-mode -1))
-  :hook (eshell-mode-hook . lina/eshell-hook)
-  :bind
-  (:map eshell-mode-map
-        ("C-w" . unix-word-rubout)
-        ("C-u" . eshell-kill-input)
-        ("C-d" . eshell-send-eof-to-process)))
-
 (use-package flymake
+  :defines emacs-lisp-mode
   :ensure nil
-  :custom
-  (flymake-show-diagnostics-at-end-of-line t)
   :hook
   ((sh-base-mode-hook python-mode-hook) . flymake-mode)
+  :config
+  (unless (display-graphic-p)
+    (setq-default flymake-show-diagnostics-at-end-of-line 'short))
   :bind
   (:map project-prefix-map
         ("n" . flymake-show-project-diagnostics))
@@ -326,10 +332,12 @@
 (setopt eglot-stay-out-of '(flymake))
 (add-hook 'eglot-managed-mode-hook
           (defun lina/eglot-hook ()
-            (eglot-inlay-hints-mode (if (member major-mode '(python-mode python-ts-mode))
+            (eglot-inlay-hints-mode (if (member major-mode
+                                                '(python-mode python-ts-mode))
                                         -1
                                       t))
-            (add-hook 'flymake-diagnostic-functions #'eglot-flymake-backend nil t)
+            (add-hook 'flymake-diagnostic-functions
+                      #'eglot-flymake-backend nil t)
             (flymake-mode t)))
 
 (use-package ispell
@@ -398,11 +406,14 @@
   :ensure nil
   :defines Info-mode-map
   :bind
+  (:map Info-mode-map
+        ("R" . info-display-manual))
   (:map help-map
         ("s" . info-lookup-symbol)))
 
 (use-package man
   :ensure nil
+  :functions Man-notify-when-ready@display-buffer
   :config
   (define-advice Man-notify-when-ready (:override (buffer) display-buffer)
     "Call `display-buffer' with BUFFER and action (category . man)."
@@ -414,7 +425,9 @@
   (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
    ((rx "/isyncrc" eos) . conf-space-mode)
    ((rx ".ovpn" eos) . conf-space-mode)
-   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ any) ".conf" eos) . conf-space-mode)))
+   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ any) ".conf" eos)
+    .
+    conf-space-mode)))
 
 (use-package js
   :ensure nil
@@ -431,19 +444,22 @@
 
 (use-package elisp-mode
   :ensure nil
+  :defines emacs-lisp-mode
   :config
   (defun lina/elisp-hook ()
     (catch 'lina/elisp-hook
       (when (and (buffer-file-name)
                  (file-in-directory-p (buffer-file-name) package-user-dir))
         (view-mode)
-        (throw 'lina/elisp-hook))
-      (setq-local
-       outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
-       outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ any)) 0))
-       ;; "^\\(?:" outline-regexp "\\).*$"
-       imenu-generic-expression (append outline-imenu-generic-expression
-                                        imenu-generic-expression)))
+        (throw 'lina/elisp-hook nil)))
+    (setq-local
+     outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
+     outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ any)) 0))
+     ;; "^\\(?:" outline-regexp "\\).*$"
+     imenu-generic-expression (append outline-imenu-generic-expression
+                                      imenu-generic-expression)
+     flymake-diagnostic-functions '(elisp-flymake-byte-compile t))
+    (flymake-mode t)
     (when (fboundp 'corfu-mode)
       (corfu-mode t)))
   (defun autoload-cookie ()
@@ -458,6 +474,7 @@
 
 (use-package comint
   :ensure nil
+  :autoload comint-skip-input
   :custom
   (comint-prompt-read-only t)
   :bind (:map comint-mode-map
@@ -466,6 +483,7 @@
 
 (use-package ielm
   :ensure nil
+  :commands ielm-return
   :config
   (defun lina/ielm-interrupt ()
     (interactive)
@@ -475,6 +493,7 @@
 
 (use-package dockerfile-ts-mode
   :ensure nil
+  :defines dockerfile-ts-mode
   :config
   (setq-mode-local dockerfile-ts-mode indent-line-function
                    #'indent-relative-first-indent-point)
@@ -499,6 +518,7 @@
 
 (use-package pp
   :ensure nil
+  :functions pp-display-expression@readonly
   :config
   (define-advice pp-display-expression
       (:after (_expression out-buffer-name &optional _lisp) readonly)
@@ -563,6 +583,7 @@
 (use-package cape
   :ensure t
   :pin gnu
+  :defines emacs-lisp-mode autoconf-mode
   :custom
   (cape-elisp-symbol-wrapper nil)
   :init
@@ -576,21 +597,21 @@
 (use-package consult
   :ensure t
   :pin gnu
+  :autoload consult-ripgrep consult-grep
   :custom
   (consult-async-split-style nil)
   (consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --glob=!TAGS")
+  (completion-in-region-function #'consult-completion-in-region)
   (xref-show-xrefs-function #'consult-xref)
   :config
   (defun consult-ripgrep-or-grep (&optional dir initial)
-    "If ripgrep is available, search with `consult-ripgrep'. Otherwise, search with `consult-grep'."
+    "If ripgrep is available, search with `consult-ripgrep'. Otherwise, search
+with `consult-grep'."
     (interactive "P")
     (funcall (if (executable-find "rg" t)
                  #'consult-ripgrep
-               #'consult-grep))
-    dir initial)
-  (defun lina/consult-minibuffer-completion-hook ()
-    (setq-local completion-in-region-function #'consult-completion-in-region))
-  :hook (minibuffer-mode-hook . lina/consult-minibuffer-completion-hook)
+               #'consult-grep)
+             dir initial))
   :bind
   ("M-g" . consult-imenu)
   (:map ctl-x-map
@@ -605,6 +626,7 @@
             ("s" . consult-info)))
 
 (use-package embark
+  :defines embark-general-map
   :ensure t
   :pin gnu
   :custom
@@ -647,6 +669,7 @@
   (setq-mode-local emacs-lisp-mode completion-styles '(orderless)))
 
 (use-package corfu
+  :defines corfu-map
   :if (or (display-graphic-p)
           (>= emacs-major-version 31))
   :ensure t
@@ -663,12 +686,13 @@
 
 (use-package marginalia
   :ensure t
+  :disabled t
   :custom
   (marginalia-mode t))
 
 ;;; third-party minor modes
 
-(require 'lina-smartparens)
+(require 'lina-puni)
 
 (use-package aggressive-indent
   :ensure t
@@ -690,26 +714,6 @@
                    xref-backend-functions
                    '(dumb-jump-xref-activate elisp--xref-backend t)))
 
-(use-package gptel
-  :pin nongnu
-  :custom
-  (gptel-log-level 'debug)
-  (gptel-model 'gemini-2.5-flash)
-  (gptel-directives '((default . "\
-Assume the following:
-* Respond as a computer program to which language is the interface.
-* Do not respond conversationally, but concisely.
-* Suggest methods and symbols, and sparingly example code blocks.
-* Do not rewrite files and return them.")))
-  :config
-  (defun lina/gptel-hook ()
-    (local-set-key (kbd "C-c C-c") #'gptel-send))
-  (setopt gptel-backend (gptel-make-gemini "Gemini"
-                          :key (gptel-api-key-from-auth-source "generativelanguage.googleapis.com")
-                          :stream t))
-
-  :hook (gptel-mode-hook . lina/gptel-hook))
-
 (use-package magit
   :pin nongnu
   :preface
@@ -724,6 +728,7 @@ Assume the following:
         ("g" . magit-file-dispatch)))
 
 (use-package transient
+  :functions transient-bind-q-to-quit
   :custom
   (transient-display-buffer-action '(display-buffer-at-bottom
                                      (dedicated . t)
@@ -742,6 +747,7 @@ Assume the following:
   :hook (eshell-mode-hook . with-editor-export-editor))
 
 (use-package ruff-format
+  :disabled t
   :hook (python-mode-hook . ruff-format-on-save-mode))
 
 (use-package delight
@@ -754,12 +760,10 @@ Assume the following:
   (setf (alist-get 'nix-mode major-mode-remap-alist) 'nix-ts-mode)
   :mode "\\.nix\\'")
 
-(use-package inheritenv
-  :init
-  (unless (fboundp 'inheritenv-add-advice)
-    (autoload 'inheritenv-add-advice "inheritenv" "Advise function FUNC with `inheritenv-apply'.
+(autoload 'inheritenv-add-advice "inheritenv"
+  "Advise function FUNC with `inheritenv-apply'.
 This will ensure that any buffers (including temporary buffers)
-created by FUNC will inherit the caller's environment." nil 'macro)))
+created by FUNC will inherit the caller's environment." nil 'macro)
 
 (use-package kubed
   :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "v0.7.0")

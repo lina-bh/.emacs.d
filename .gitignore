@@ -24,3 +24,5 @@ forge-database.sqlite
 **/*.eld
 /racket-mode/
 /lisp/marginalia
+/eca/
+network-security.data

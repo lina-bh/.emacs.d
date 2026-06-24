@@ -32,16 +32,15 @@
   (defun lina/mu4e-compose-mbsync-push-sent ()
     (let (mu4e-get-mail-command)
       (catch t
-        (setq mu4e-get-mail-command (format "mbsync --push %s:%s"
-                                            user-mail-address
+        (setq mu4e-get-mail-command (format "mbsync --push push:%s"
                                             (substring (cl-case mu4e-message-post-action
-                                                         ('postpone mu4e-drafts-folder)
-                                                         ('send mu4e-sent-folder)
+                                                         (postpone mu4e-drafts-folder)
+                                                         (send mu4e-sent-folder)
                                                          (t (throw nil nil)))
                                                        1)))
         (mu4e-update-mail-and-index t))))
-  :hook
-  (mu4e-compose-post-hook . lina/mu4e-compose-mbsync-push-sent)
+  ;; :hook
+  ;; (mu4e-compose-post-hook . lina/mu4e-compose-mbsync-push-sent)
   :bind
   (("C-x m" . mu4e-jump-to-favorite)
    (:map mu4e-headers-mode-map

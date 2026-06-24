@@ -21,8 +21,7 @@
             (use-region-p)
             (not (looking-back (rx line-start (+ blank)))))
         (call-interactively #'puni-backward-delete-char)
-      (puni-delete-region (1- (line-beginning-position)) (point))
-      (insert " ")))
+      (puni-delete-region (1- (line-beginning-position)) (point))))
   :hook
   (puni-mode-hook . electric-pair-local-mode)
   (prog-mode-hook . puni-mode)
