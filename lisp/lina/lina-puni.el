@@ -32,7 +32,11 @@
         ("C-t" . puni-transpose)
         ("C-w" . lina/puni-c-w-dwim)
         ("C-c r" . puni-raise)
-        ("C-c ." . puni-slurp-forward))
+        ("C-c ." . puni-slurp-forward)
+        ("C-c s" . puni-splice)
+        ("M-<up>" . puni-backward-sexp-or-up-list)
+        ("M-<left>" . puni-backward-sexp)
+        ("M-<right>" . puni-forward-sexp))
   (:repeat-map lina/puni-repeat-map
                ("." . puni-slurp-forward)))
 

@@ -352,6 +352,11 @@
 
 ;;; built-in major modes
 
+(use-package prog-mode
+  :ensure nil
+  :bind (:map prog-mode-map
+              ("M-<down>" . down-list)))
+
 (use-package treesit
   :ensure nil
   :defines treesit-language-source-alist
