@@ -18,8 +18,6 @@
 (load custom-file t)
 (package-initialize)
 (add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
-(with-eval-after-load 'package-vc
-  (setq-default vc-handled-backends '(Git)))
 
 ;;;; emacs
 
@@ -63,7 +61,11 @@
          ("C-l" . redraw-display)
          ;; ("C-x m" . push-point-to-register)
          ("C-x j" . register-to-point)
-         ("C-x C-g" . ignore)))
+         ("C-x C-g" . ignore)
+         ("M-<up>" . backward-up-list)
+         ("M-<down>" . down-list)
+         ("M-<left>" . backward-sexp)
+         ("M-<right>" . forward-sexp)))
 
 (use-package startup
   :ensure nil
@@ -98,7 +100,8 @@
    (confirm-kill-processes nil)
    (make-backup-files nil)
    (require-final-newline t)
-   (view-read-only t))
+   (view-read-only t)
+   (trusted-content `(,(locate-user-emacs-file "lisp/lina/"))))
   :bind
   ("C-x x" . revert-buffer-quick)
   ("C-x C-x" . revert-buffer-quick))
@@ -106,85 +109,18 @@
 (use-package server
   :ensure nil
   :autoload server-running-p
-  :init
-  (defun lina/after-init-start-server ()
-    (unless (server-running-p)
-      (server-start)))
   :hook
-  (after-init-hook . lina/after-init-start-server))
+  (after-init-hook . (lambda ()
+                       (unless (server-running-p)
+                         (server-start)))))
 
 ;;; look & feel
 
-(use-package window
-  :ensure nil
-  :custom
-  (display-buffer-base-action '((display-buffer-reuse-window
-                                 display-buffer-use-least-recent-window)))
-  (display-buffer-alist
-   `(
-     ((derived-mode . Info-mode)
-      display-buffer-reuse-mode-window)
-     ((derived-mode . magit-diff-mode)
-      (display-buffer-reuse-mode-window)
-      (mode . magit-log-mode))
-     ("\\*Completions"
-      (display-buffer-reuse-window
-       display-buffer-at-bottom))
-     ((derived-mode . calc-mode)
-      display-buffer-at-bottom)
-     ((and
-       (not ,(rx bos "*Async Shell Command*" eos))
-       (or
-        (category . comint)
-        (category . warning)
-        (derived-mode . flymake-diagnostics-buffer-mode)
-        (derived-mode . help-mode)
-        (derived-mode . term-mode)
-        (derived-mode . comint-mode)
-        ,(rx bos
-             "*"
-             (or
-              "eshell"
-              "trace-output"
-              "eldoc"
-              (and (* any) "REPL")
-              "Warnings"
-              "Compile-Log"))))
-      display-buffer-in-side-window
-      (window-height . 12)
-      (slot . 0))
-     ((or
-       (category . man)
-       (major-mode . Man-mode)
-       ,(rx bos "*Man"))
-      (display-buffer-reuse-mode-window)
-      (mode . Man-mode))
-     (,(rx bos "*Customize")
-      display-buffer-reuse-mode-window)
-     (,(rx bos "*Pp")
-      (display-buffer-reuse-window
-       display-buffer-below-selected)
-      (dedicated . t))))
-  (switch-to-buffer-in-dedicated-window 'pop)
-  (switch-to-buffer-obey-display-actions t)
-  (split-window-preferred-direction 'horizontal)
-  :config
-  (defun split-window-right-and-select (&rest args)
-    (interactive)
-    (select-window (apply #'split-window-right args)))
-  (defun split-window-below-and-select (&rest args)
-    (interactive)
-    (select-window (apply #'split-window-below args)))
-  :bind
-  ("C-x 2" . split-window-below-and-select)
-  ("C-x 3" . split-window-right-and-select)
-  ("C-x 5" . make-frame-command)
-  ("C-x q" . quit-window)
-  ("C-x o" . other-window)
-  ("C-x 4" . other-window-prefix))
+(load (locate-user-emacs-file "lisp/lina/lina-window.el") nil t t t)
 
 (require-theme 'modus-themes)
-(add-hook 'after-init-hook (apply-partially #'load-theme 'modus-operandi t))
+(add-hook 'after-init-hook (lambda ()
+                             (load-theme 'modus-operandi t)))
 
 (use-package display-fill-column-indicator
   :ensure nil
@@ -348,14 +284,27 @@
 (use-package browse-url
   :ensure nil
   :custom
-  (browse-url-handlers `((,(rx ".pdf" eos) . browse-url--browser))))
+  (browse-url-handlers `((,(rx ".pdf" eos) . browse-url-xdg-open))))
+
+(use-package compile
+  :ensure nil
+  :custom
+  ((compilation-scroll-output 'first-error)
+   (compilation-ask-about-save nil)))
+
+(use-package vc-hooks
+  :ensure nil
+  :hook (after-init-hook . (lambda ()
+                             (setq-default vc-handled-backends '(Git)))))
+
+(use-package backtrace
+  :ensure nil
+  :config
+  (defun lina/turn-off-truncate-lines ()
+    (setq-local truncate-lines nil))
+  :hook (backtrace-mode-hook . lina/turn-off-truncate-lines))
 
 ;;; built-in major modes
-
-(use-package prog-mode
-  :ensure nil
-  :bind (:map prog-mode-map
-              ("M-<down>" . down-list)))
 
 (use-package treesit
   :ensure nil
@@ -366,8 +315,9 @@
           "v0.3.0"))
   :custom
   (treesit-auto-install-grammar 'always)
-  (treesit-enabled-modes '(c-ts-mode
-                           bash-ts-mode))
+  (treesit-enabled-modes '(bash-ts-mode
+                           c-ts-mode
+                           json-ts-mode))
   (treesit-font-lock-level 4))
 
 (use-package dired
@@ -430,7 +380,7 @@
   (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
    ((rx "/isyncrc" eos) . conf-space-mode)
    ((rx ".ovpn" eos) . conf-space-mode)
-   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ any) ".conf" eos)
+   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ nonl) ".conf" eos)
     .
     conf-space-mode)))
 
@@ -451,28 +401,25 @@
   :ensure nil
   :defines emacs-lisp-mode
   :config
-  (defun lina/elisp-hook ()
-    (catch 'lina/elisp-hook
-      (when (and (buffer-file-name)
-                 (file-in-directory-p (buffer-file-name) package-user-dir))
-        (view-mode)
-        (throw 'lina/elisp-hook nil)))
-    (setq-local
-     outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
-     outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ any)) 0))
-     ;; "^\\(?:" outline-regexp "\\).*$"
-     imenu-generic-expression (append outline-imenu-generic-expression
-                                      imenu-generic-expression)
-     flymake-diagnostic-functions '(elisp-flymake-byte-compile t))
-    (flymake-mode t)
-    (when (fboundp 'corfu-mode)
-      (corfu-mode t)))
   (defun autoload-cookie ()
     "Insert an autoload cookie above the current defun."
     (interactive)
     (save-excursion
       (beginning-of-defun)
       (insert ";;;###autoload\n")))
+  (defun lina/elisp-hook ()
+    (setq-local
+     outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
+     outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ nonl)) 0))
+     imenu-generic-expression (append outline-imenu-generic-expression
+                                      imenu-generic-expression)
+     flymake-diagnostic-functions '(elisp-flymake-byte-compile t))
+    (if (not (and (buffer-file-name)
+                  (file-in-directory-p (buffer-file-name) package-user-dir)))
+        (flymake-mode t)
+      (view-mode)
+      (when (fboundp 'corfu-mode)
+        (corfu-mode t))))
   :hook (emacs-lisp-mode-hook . lina/elisp-hook)
   :bind (:map emacs-lisp-mode-map
               ("C-c C-c" . elisp-eval-region-or-buffer)))
@@ -481,10 +428,12 @@
   :ensure nil
   :autoload comint-skip-input
   :custom
-  (comint-prompt-read-only t)
+  ((comint-prompt-read-only t)
+   (comint-move-point-for-output t))
   :bind (:map comint-mode-map
               ("<up>" . comint-previous-input)
-              ("<down>" . comint-next-input)))
+              ("<down>" . comint-next-input)
+              ("C-u" . comint-kill-input)))
 
 (use-package ielm
   :ensure nil
@@ -502,7 +451,7 @@
   :config
   (setq-mode-local dockerfile-ts-mode indent-line-function
                    #'indent-relative-first-indent-point)
-  :mode ((rx (or "Docker" "Container") "file" (* any) eos)))
+  :mode ((rx (or "Docker" "Container") "file" (* nonl) eos)))
 
 (use-package python
   :ensure nil
@@ -518,6 +467,18 @@
   :ensure nil
   :bind (:map image-mode-map
               ([remap revert-buffer] . revert-buffer-quick)))
+
+(use-package tex-mode
+  :ensure nil
+  :defines latex-mode
+  :config
+  (setq-mode-local latex-mode compile-command "latexmk \
+-file-line-error \
+-halt-on-error \
+-interaction=nonstopmode \
+-synctex=1")
+  :bind (:map latex-mode-map
+              ("C-c C-c" . recompile)))
 
 ;;; built-in minor modes
 
@@ -572,6 +533,11 @@
   :ensure nil
   :custom
   (outline-minor-mode-prefix (kbd "C-c ;")))
+
+(use-package paren
+  :ensure nil
+  :custom
+  (show-paren-context-when-offscreen t))
 
 ;;; third-party completion
 
@@ -713,6 +679,8 @@ with `consult-grep'."
 
 (use-package dumb-jump
   :ensure t
+  :custom
+  ((dumb-jump-prefer-searcher 'rg))
   :init
   (setq-default xref-backend-functions '(dumb-jump-xref-activate))
   (setq-mode-local emacs-lisp-mode
@@ -757,6 +725,15 @@ with `consult-grep'."
 
 (use-package delight
   :ensure t)
+
+(require 'lina-llm)
+
+(use-package ghostel
+  :pin melpa
+  :custom
+  ((ghostel-shell (or (executable-find "zsh")
+                      "/bin/sh"))
+   (ghostel-term "xterm-256color")))
 
 ;;; third-party major modes
 

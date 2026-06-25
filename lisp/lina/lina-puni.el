@@ -4,6 +4,11 @@
 
 (use-package puni
   :ensure t
+  :defines (puni-mode-map)
+  :functions (puni-kill-active-region
+              puni-kill-line
+              puni-backward-delete-char
+              puni-delete-region)
   :config
   (defun lina/puni-c-w-dwim ()
     (interactive)
@@ -19,7 +24,10 @@
     (interactive)
     (if (or current-prefix-arg
             (use-region-p)
-            (not (looking-back (rx line-start (+ blank)))))
+            (not (looking-back (rx line-start (+ blank))
+                               (save-excursion
+                                 (beginning-of-line)
+                                 (point)))))
         (call-interactively #'puni-backward-delete-char)
       (puni-delete-region (1- (line-beginning-position)) (point))))
   :hook
@@ -27,7 +35,9 @@
   (prog-mode-hook . puni-mode)
   :bind
   (:map puni-mode-map
-        ([remap puni-backward-delete-char] . lina/puni-hungry-backward-delete-char)
+        ([remap puni-backward-delete-char]
+         .
+         lina/puni-hungry-backward-delete-char)
         ("C-k" . lina/puni-kill-whole-line)
         ("C-t" . puni-transpose)
         ("C-w" . lina/puni-c-w-dwim)
@@ -39,5 +49,9 @@
         ("M-<right>" . puni-forward-sexp))
   (:repeat-map lina/puni-repeat-map
                ("." . puni-slurp-forward)))
+
+(use-package elec-pair
+  :ensure nil
+  :hook (tex-mode-hook . electric-pair-local-mode))
 
 (provide 'lina-puni)
