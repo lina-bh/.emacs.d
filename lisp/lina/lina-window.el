@@ -52,9 +52,13 @@
                     (derived-mode . comint-mode)
                     (derived-mode . ghostel-mode)
                     ,(rx bos "*" (or
-                                  (and (* nonl) "REPL")
-                                  "eshell"))))
-           display-buffer-reuse-mode-window)
+                                  "Python"
+                                  (and (* nonl) "REPL")))
+                    ,(rx (or "eshell") "*" eos)))
+           (display-buffer-reuse-mode-window
+            display-buffer-at-bottom)
+           (mode . (comint-mode
+                    eshell-mode)))
           ((or
             (category . warning)
             (derived-mode . flymake-diagnostics-buffer-mode)

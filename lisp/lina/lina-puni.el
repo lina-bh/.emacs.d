@@ -32,7 +32,6 @@
       (puni-delete-region (1- (line-beginning-position)) (point))))
   :hook
   (puni-mode-hook . electric-pair-local-mode)
-  (prog-mode-hook . puni-mode)
   :bind
   (:map puni-mode-map
         ([remap puni-backward-delete-char]
@@ -46,7 +45,8 @@
         ("C-c s" . puni-splice)
         ("M-<up>" . puni-backward-sexp-or-up-list)
         ("M-<left>" . puni-backward-sexp)
-        ("M-<right>" . puni-forward-sexp))
+        ("M-<right>" . puni-forward-sexp)
+        ("M-9" . puni-wrap-round))
   (:repeat-map lina/puni-repeat-map
                ("." . puni-slurp-forward)))
 

@@ -17,7 +17,10 @@
                                            ("melpa-stable" . 1)))
 (load custom-file t)
 (package-initialize)
+
 (add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
+(defun load-lina (file)
+  (load (locate-user-emacs-file (format "lisp/lina/lina-%s.el" file)) nil t t))
 
 ;;;; emacs
 
@@ -25,33 +28,53 @@
   :ensure nil
   :preface
   (defconst linux-font '(:family "Iosevka" :height 105))
-  :init
-  (setopt auth-sources '("~/.authinfo")
-          backward-delete-char-untabify-method 'hungry
-          bidi-inhibit-bpa t
-          bidi-paragraph-direction 'left-to-right
-          create-lockfiles nil
-          cursor-in-non-selected-windows nil
-          enable-recursive-minibuffers t
-          fast-but-imprecise-scrolling t
-          fill-column 80
-          garbage-collection-messages t
-          mouse-autoselect-window t
-          native-comp-async-on-battery-power nil
-          native-comp-async-report-warnings-errors 'silent
-          read-process-output-max 1048576
-          redisplay-skip-fontification-on-input t
-          max-redisplay-ticks 1000000
-          ring-bell-function #'ignore
-          scroll-conservatively 100
-          tab-always-indent 'complete
-          tooltip-delay 0.1
-          use-dialog-box nil
-          use-short-answers t
-          vc-follow-symlinks t
-          warning-minimum-level :emergency
-          xterm-set-window-title t
-          xterm-mouse-mode t)
+  :custom
+  ((auth-sources '("~/.authinfo"))
+   (auto-save-default nil)
+   (backward-delete-char-untabify-method 'hungry)
+   (bidi-inhibit-bpa t)
+   (bidi-paragraph-direction 'left-to-right)
+   (column-number-mode t)
+   (confirm-kill-processes nil)
+   (create-lockfiles nil)
+   (cursor-in-non-selected-windows nil)
+   (delete-selection-mode t)
+   (enable-recursive-minibuffers t)
+   (extended-command-suggest-shorter nil)
+   (fast-but-imprecise-scrolling t)
+   (fill-column 80)
+   (garbage-collection-messages t)
+   (indent-tabs-mode nil)
+   (inhibit-startup-screen t)
+   (initial-major-mode 'fundamental-mode)
+   (initial-scratch-message nil)
+   (kill-do-not-save-duplicates t)
+   (kill-region-dwim 'emacs-word)
+   (make-backup-files nil)
+   (max-redisplay-ticks 1000000)
+   (mouse-autoselect-window t)
+   (native-comp-async-on-battery-power nil)
+   (native-comp-async-report-warnings-errors 'silent)
+   (read-extended-command-predicate #'command-completion-default-include-p)
+   (read-process-output-max 1048576)
+   (redisplay-skip-fontification-on-input t)
+   (repeat-mode t)
+   (require-final-newline t)
+   (ring-bell-function #'ignore)
+   (scroll-conservatively 100)
+   (show-paren-context-when-offscreen t)
+   (suggest-key-bindings nil)
+   (tab-always-indent 'complete)
+   (tooltip-delay 0.1)
+   (trusted-content `(,(locate-user-emacs-file "lisp/lina/")))
+   (use-dialog-box nil)
+   (use-short-answers t)
+   (vc-follow-symlinks t)
+   (view-read-only t)
+   (warning-minimum-level :emergency)
+   (xterm-mouse-mode t)
+   (xterm-set-window-title t)
+   (auto-revert-mode-text ""))
   :custom-face
   (default ((((type x pgtk)) ,linux-font)))
   (fixed-pitch ((((type x pgtk)) ,linux-font)))
@@ -65,46 +88,16 @@
          ("M-<up>" . backward-up-list)
          ("M-<down>" . down-list)
          ("M-<left>" . backward-sexp)
-         ("M-<right>" . forward-sexp)))
-
-(use-package startup
-  :ensure nil
-  :custom
-  ((inhibit-startup-screen t)
-   (initial-scratch-message nil)
-   (initial-major-mode 'fundamental-mode)))
-
-(use-package simple
-  :ensure nil
-  :custom
-  ((column-number-mode t)
-   (extended-command-suggest-shorter nil)
-   (indent-tabs-mode nil)
-   (kill-do-not-save-duplicates t)
-   (kill-region-dwim 'emacs-word)
-   (read-extended-command-predicate #'command-completion-default-include-p)
-   (suggest-key-bindings nil))
-  :config
-  (when (fboundp 'delete-trailing-whitespace-mode)
-    (add-hook 'prog-mode-hook #'delete-trailing-whitespace-mode))
-  :bind (("C-k" . kill-whole-line)
+         ("M-<right>" . forward-sexp)
+         ("C-k" . kill-whole-line)
          ("C-z" . undo)
          ("C-S-z" . undo-redo)
          ("M-," . pop-to-mark-command)
-         ("C-," . pop-global-mark)))
-
-(use-package files
-  :ensure nil
-  :custom
-  ((auto-save-default nil)
-   (confirm-kill-processes nil)
-   (make-backup-files nil)
-   (require-final-newline t)
-   (view-read-only t)
-   (trusted-content `(,(locate-user-emacs-file "lisp/lina/"))))
-  :bind
-  ("C-x x" . revert-buffer-quick)
-  ("C-x C-x" . revert-buffer-quick))
+         ("C-," . pop-global-mark)
+         ("C-x x" . revert-buffer-quick)
+         ("C-x C-x" . revert-buffer-quick)
+         (:map image-mode-map
+               ([remap revert-buffer] . revert-buffer-quick))))
 
 (use-package server
   :ensure nil
@@ -114,29 +107,14 @@
                        (unless (server-running-p)
                          (server-start)))))
 
-;;; look & feel
-
-(load (locate-user-emacs-file "lisp/lina/lina-window.el") nil t t t)
+(load-lina "window")
 
 (require-theme 'modus-themes)
 (add-hook 'after-init-hook (lambda ()
                              (load-theme 'modus-operandi t)))
 
-(use-package display-fill-column-indicator
-  :ensure nil
-  :custom
-  (display-fill-column-indicator-character nil)
-  (global-display-fill-column-indicator-mode t)
-  (global-display-fill-column-indicator-modes '(prog-mode))
-  :custom-face
-  (fill-column-indicator ((t :foreground ,"grey" :background unspecified))))
-
-;;; minibuffer
-
 (use-package minibuffer
   :ensure nil
-  :custom-face
-  (completions-annotations ((t :underline nil :inherit (italic shadow))))
   :custom
   (completion-ignore-case t)
   (completion-pcm-leading-wildcard t)
@@ -147,399 +125,14 @@
   (minibuffer-nonselected-mode nil)
   (read-buffer-completion-ignore-case t)
   (read-file-name-completion-ignore-case t)
+  :custom-face
+  (completions-annotations ((t :underline nil :inherit (italic shadow))))
   :bind
   ("M-i" . completion-at-point)
   (:map minibuffer-local-map
         ("C-u" . kill-whole-line)))
 
-;;; navigation
-
-(use-package recentf
-  :ensure nil
-  :custom
-  (recentf-mode t)
-  (recentf-max-saved-items nil)
-  (recentf-exclude (list (rx bos "/nix/store" (* any)))))
-
-(use-package xref
-  :ensure nil
-  :custom
-  (xref-prompt-for-identifier nil)
-  (xref-show-definitions-function
-   #'xref-show-definitions-completing-read))
-
-(use-package isearch
-  :ensure nil
-  :bind
-  ("C-r" . isearch-backward-regexp)
-  ("C-s" . isearch-forward-regexp)
-  ("M-s" . isearch-forward-symbol)
-  (:map isearch-mode-map
-        ("ESC" . isearch-exit)))
-
-(use-package find-func
-  :ensure nil
-  :custom
-  (find-function-mode t)
-  (find-function-mode-lower-precedence t))
-
-(use-package savehist
-  :ensure nil
-  :custom
-  (savehist-mode t)
-  (savehist-additional-variables '(kill-ring)))
-
-(use-package saveplace
-  :ensure nil
-  :custom
-  (save-place-mode t))
-
-;;; integrations
-
-(use-package tramp
-  :ensure nil
-  :demand t
-  :autoload tramp-recentf-cleanup tramp-recentf-cleanup-all tramp-enable-method
-  :custom
-  (tramp-show-ad-hoc-proxies t)
-  :config
-  (advice-add #'tramp-recentf-cleanup :override #'ignore)
-  (advice-add #'tramp-recentf-cleanup-all :override #'ignore)
-  (tramp-enable-method 'podman)
-  (tramp-enable-method 'distrobox))
-
-(use-package shell
-  :ensure nil
-  :custom
-  (shell-kill-buffer-on-exit t))
-
-(use-package esh-mode
-  :ensure nil
-  :autoload eshell-reset
-  :config
-  (defun lina/eshell-hook ()
-    (electric-pair-local-mode -1))
-  :hook (eshell-mode-hook . lina/eshell-hook)
-  :bind
-  (:map eshell-mode-map
-        ("C-w" . unix-word-rubout)
-        ("C-u" . eshell-kill-input)
-        ("C-d" . eshell-send-eof-to-process)))
-
-(use-package eshell
-  :ensure nil
-  :functions eshell/cd
-  :custom
-  (eshell-scroll-to-bottom-on-input t)
-  (eshell-visual-subcommands '(("bootc" "update")))
-  :config
-  (defun lina/eshell-in-buffer-directory ()
-    (interactive)
-    (let ((bufdir default-directory))
-      (with-current-buffer (eshell)
-        (unless (string= bufdir default-directory)
-          (eshell/cd `(,bufdir))
-          (eshell-reset)))))
-  :bind
-  (:map project-prefix-map
-        ("s" . lina/eshell-in-buffer-directory)))
-
-(use-package flymake
-  :defines emacs-lisp-mode
-  :ensure nil
-  :hook
-  ((sh-base-mode-hook python-mode-hook) . flymake-mode)
-  :config
-  (unless (display-graphic-p)
-    (setq-default flymake-show-diagnostics-at-end-of-line 'short))
-  :bind
-  (:map project-prefix-map
-        ("n" . flymake-show-project-diagnostics))
-  (:map flymake-mode-map
-        ("C-x n" . flymake-show-buffer-diagnostics)))
-
-(use-package project
-  :ensure nil
-  :bind
-  (:map project-prefix-map
-        ("d" . project-dired)))
-
-(require 'eglot)
-(setopt eglot-stay-out-of '(flymake))
-(add-hook 'eglot-managed-mode-hook
-          (defun lina/eglot-hook ()
-            (eglot-inlay-hints-mode (if (member major-mode
-                                                '(python-mode python-ts-mode))
-                                        -1
-                                      t))
-            (add-hook 'flymake-diagnostic-functions
-                      #'eglot-flymake-backend nil t)
-            (flymake-mode t)))
-
-(use-package ispell
-  :ensure nil
-  :custom
-  (ispell-dictionary "en_GB"))
-
-(use-package browse-url
-  :ensure nil
-  :custom
-  (browse-url-handlers `((,(rx ".pdf" eos) . browse-url-xdg-open))))
-
-(use-package compile
-  :ensure nil
-  :custom
-  ((compilation-scroll-output 'first-error)
-   (compilation-ask-about-save nil)))
-
-(use-package vc-hooks
-  :ensure nil
-  :hook (after-init-hook . (lambda ()
-                             (setq-default vc-handled-backends '(Git)))))
-
-(use-package backtrace
-  :ensure nil
-  :config
-  (defun lina/turn-off-truncate-lines ()
-    (setq-local truncate-lines nil))
-  :hook (backtrace-mode-hook . lina/turn-off-truncate-lines))
-
-;;; built-in major modes
-
-(use-package treesit
-  :ensure nil
-  :defines treesit-language-source-alist
-  :init
-  (setf (alist-get 'nix treesit-language-source-alist)
-        '("https://github.com/nix-community/tree-sitter-nix.git"
-          "v0.3.0"))
-  :custom
-  (treesit-auto-install-grammar 'always)
-  (treesit-enabled-modes '(bash-ts-mode
-                           c-ts-mode
-                           json-ts-mode))
-  (treesit-font-lock-level 4))
-
-(use-package dired
-  :ensure nil
-  :custom
-  (delete-by-moving-to-trash t)
-  (dired-auto-revert-buffer t)
-  (dired-clean-confirm-killing-deleted-buffers nil)
-  (dired-kill-when-opening-new-dired-buffer t)
-  (dired-listing-switches "-alZ")
-  (dired-recursive-deletes 'always)
-  :hook
-  (dired-mode-hook . dired-hide-details-mode)
-  :bind
-  (:map ctl-x-map
-        ("d" . dired-jump))
-  (:map dired-mode-map
-        ([remap dired-mouse-find-file-other-window]
-         . dired-mouse-find-file)))
-
-(use-package customize
-  :ensure nil
-  :bind
-  (:map help-map
-        ("g" . customize-group-other-window)
-        ("u" . customize-variable-other-window)))
-
-(use-package help
-  :ensure nil
-  :custom
-  (help-window-select t)
-  :bind
-  (:map help-map
-        ("C-h" . nil)
-        ("C-g" . help-quit))
-  (:map help-mode-map
-        ("," . help-go-back)
-        ("p" . help-go-back)))
-
-(use-package info
-  :ensure nil
-  :defines Info-mode-map
-  :bind
-  (:map Info-mode-map
-        ("R" . info-display-manual))
-  (:map help-map
-        ("s" . info-lookup-symbol)))
-
-(use-package man
-  :ensure nil
-  :functions Man-notify-when-ready@display-buffer
-  :config
-  (define-advice Man-notify-when-ready (:override (buffer) display-buffer)
-    "Call `display-buffer' with BUFFER and action (category . man)."
-    (display-buffer buffer '(nil (category . man)))))
-
-(use-package conf-mode
-  :ensure nil
-  :mode
-  (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
-   ((rx "/isyncrc" eos) . conf-space-mode)
-   ((rx ".ovpn" eos) . conf-space-mode)
-   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ nonl) ".conf" eos)
-    .
-    conf-space-mode)))
-
-(use-package js
-  :ensure nil
-  :custom
-  (js-indent-level 2)
-  :mode ((rx ".conflist" eos) . js-json-mode))
-
-(use-package sh-script
-  :ensure nil
-  :custom
-  (sh-basic-offset 2)
-  :mode
-  ((rx "/.env" (opt ".local")) . sh-mode))
-
-(use-package elisp-mode
-  :ensure nil
-  :defines emacs-lisp-mode
-  :config
-  (defun autoload-cookie ()
-    "Insert an autoload cookie above the current defun."
-    (interactive)
-    (save-excursion
-      (beginning-of-defun)
-      (insert ";;;###autoload\n")))
-  (defun lina/elisp-hook ()
-    (setq-local
-     outline-regexp (rx (and ";;;" (0+ ";") " " (not (any blank))))
-     outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ nonl)) 0))
-     imenu-generic-expression (append outline-imenu-generic-expression
-                                      imenu-generic-expression)
-     flymake-diagnostic-functions '(elisp-flymake-byte-compile t))
-    (if (not (and (buffer-file-name)
-                  (file-in-directory-p (buffer-file-name) package-user-dir)))
-        (flymake-mode t)
-      (view-mode)
-      (when (fboundp 'corfu-mode)
-        (corfu-mode t))))
-  :hook (emacs-lisp-mode-hook . lina/elisp-hook)
-  :bind (:map emacs-lisp-mode-map
-              ("C-c C-c" . elisp-eval-region-or-buffer)))
-
-(use-package comint
-  :ensure nil
-  :autoload comint-skip-input
-  :custom
-  ((comint-prompt-read-only t)
-   (comint-move-point-for-output t))
-  :bind (:map comint-mode-map
-              ("<up>" . comint-previous-input)
-              ("<down>" . comint-next-input)
-              ("C-u" . comint-kill-input)))
-
-(use-package ielm
-  :ensure nil
-  :commands ielm-return
-  :config
-  (defun lina/ielm-interrupt ()
-    (interactive)
-    (comint-skip-input)
-    (ielm-return))
-  :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c" . lina/ielm-interrupt)))
-
-(use-package dockerfile-ts-mode
-  :ensure nil
-  :defines dockerfile-ts-mode
-  :config
-  (setq-mode-local dockerfile-ts-mode indent-line-function
-                   #'indent-relative-first-indent-point)
-  :mode ((rx (or "Docker" "Container") "file" (* nonl) eos)))
-
-(use-package python
-  :ensure nil
-  :custom
-  (python-flymake-command '("ruff"
-                            "check"
-                            "--quiet"
-                            "--output-format=concise"
-                            "--stdin-filename=stdin"))
-  (python-indent-guess-indent-offset-verbose nil))
-
-(use-package image-mode
-  :ensure nil
-  :bind (:map image-mode-map
-              ([remap revert-buffer] . revert-buffer-quick)))
-
-(use-package tex-mode
-  :ensure nil
-  :defines latex-mode
-  :config
-  (setq-mode-local latex-mode compile-command "latexmk \
--file-line-error \
--halt-on-error \
--interaction=nonstopmode \
--synctex=1")
-  :bind (:map latex-mode-map
-              ("C-c C-c" . recompile)))
-
-;;; built-in minor modes
-
-(use-package pp
-  :ensure nil
-  :functions pp-display-expression@readonly
-  :config
-  (define-advice pp-display-expression
-      (:after (_expression out-buffer-name &optional _lisp) readonly)
-    (with-current-buffer out-buffer-name
-      (view-mode))
-    (pop-to-buffer out-buffer-name))
-  :bind
-  ("M-:" . pp-eval-expression)
-  (:map emacs-lisp-mode-map
-        ("C-c C-p" . pp-macroexpand-last-sexp)))
-
-(use-package autoinsert
-  :ensure nil
-  :custom
-  (auto-insert-query nil)
-  (auto-insert-alist (list (cons "\\.el\\'"
-                                 (lambda ()
-                                   (setq-local lexical-binding t)
-                                   (add-file-local-variable-prop-line 'lexical-binding t)
-                                   (goto-char (point-max))))))
-  :hook
-  (emacs-lisp-mode-hook . auto-insert))
-
-(use-package autorevert
-  :ensure nil
-  :custom
-  (auto-revert-mode-text ""))
-
-(use-package eldoc
-  :ensure nil
-  :custom
-  (eldoc-minor-mode-string nil)
-  (eldoc-echo-area-use-multiline-p nil))
-
-(use-package delsel
-  :ensure nil
-  :custom
-  (delete-selection-mode t))
-
-(use-package repeat
-  :ensure nil
-  :custom
-  (repeat-mode t))
-
-(use-package outline
-  :ensure nil
-  :custom
-  (outline-minor-mode-prefix (kbd "C-c ;")))
-
-(use-package paren
-  :ensure nil
-  :custom
-  (show-paren-context-when-offscreen t))
-
-;;; third-party completion
+;;; movec
 
 (use-package vertico
   :ensure t
@@ -549,7 +142,8 @@
   (vertico-count-format nil)
   (vertico-group-format "%s")
   (vertico-multiform-mode t)
-  (vertico-multiform-categories '((file (:keymap . vertico-directory-map)))))
+  (vertico-multiform-categories '((file (:keymap . vertico-directory-map))))
+  (vertico-multiform-commands '((magit-clone (vertico-preselect . prompt)))))
 
 (use-package cape
   :ensure t
@@ -571,7 +165,19 @@
   :autoload consult-ripgrep consult-grep
   :custom
   (consult-async-split-style nil)
-  (consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /   --smart-case --no-heading --with-filename --line-number --search-zip --glob=!TAGS")
+  (consult-ripgrep-args "rg \
+--null \
+--line-buffered \
+--color=never \
+--max-columns=1000 \
+--path-separator=/ \
+--smart-case \
+--no-heading \
+--with-filename \
+--line-number \
+--search-zip \
+--glob=!TAGS")
+  (consult-preview-key nil)
   (completion-in-region-function #'consult-completion-in-region)
   (xref-show-xrefs-function #'consult-xref)
   :config
@@ -586,18 +192,15 @@ with `consult-grep'."
   :bind
   ("M-g" . consult-imenu)
   (:map ctl-x-map
-        ("C-r" . consult-recent-file)
-        ("r" . consult-bookmark))
+        ("b" . consult-buffer))
   (:map project-prefix-map
-        ("g" . consult-ripgrep-or-grep)
+        ("g" . consult-ripgrep)
         ("f" . consult-find))
   (:map help-map
-        ("i" . consult-info))
-  (:package info :map Info-mode-map
-            ("s" . consult-info)))
+        ("i" . consult-info)))
 
 (use-package embark
-  :defines embark-general-map
+  :defines embark-general-map embark-target-finders
   :ensure t
   :pin gnu
   :custom
@@ -607,6 +210,7 @@ with `consult-grep'."
                        embark-isearch-highlight-indicator))
   (prefix-help-command #'embark-prefix-help-command)
   :config
+  (delete 'embark-target-flymake-at-point embark-target-finders)
   (defun embark-isearch-symbol-forward ()
     "`embark-isearch-forward' but `isearch-forward-symbol'."
     (interactive)
@@ -631,23 +235,25 @@ with `consult-grep'."
   :demand t
   :custom
   (completion-styles '(emacs22 partial-completion orderless))
-  (completion-category-overrides `((buffer (styles substring))
-                                   ,@(mapcar (lambda (cat)
-                                               (list cat '(styles orderless)))
-                                             '(command symbol function variable symbol-help))))
+  (completion-category-overrides
+   `((buffer (styles substring))
+     ,@(mapcar (lambda (cat)
+                 (list cat '(styles orderless)))
+               '(command symbol function variable symbol-help))))
   (orderless-component-separator "[- ]")
   :config
   (setq-mode-local emacs-lisp-mode completion-styles '(orderless)))
 
 (use-package corfu
   :defines corfu-map
+  :ensure t
   :if (or (display-graphic-p)
           (>= emacs-major-version 31))
-  :ensure t
   :custom
   (corfu-cycle t)
-  (corfu-quit-at-boundary nil)
+  (corfu-quit-at-boundary t)
   (corfu-quit-no-match nil)
+  (corfu-preselect 'first)
   (global-corfu-minibuffer nil)
   (global-corfu-mode t)
   (global-corfu-modes '((not comint-mode eshell-mode) t))
@@ -655,25 +261,253 @@ with `consult-grep'."
               ("TAB" . corfu-next)
               ("<backtab>" . corfu-previous)))
 
-(use-package marginalia
-  :ensure t
-  :disabled t
+;;;; help
+
+(use-package customize
+  :ensure nil
+  :bind
+  (:map help-map
+        ("g" . customize-group-other-window)
+        ("u" . customize-variable-other-window)))
+
+(use-package help
+  :ensure nil
   :custom
-  (marginalia-mode t))
+  (help-window-select t)
+  :bind
+  (:map help-map
+        ("m" . describe-keymap)
+        ("C-h" . nil)
+        ("C-g" . help-quit))
+  (:map help-mode-map
+        ("," . help-go-back)
+        ("p" . help-go-back)))
 
-;;; third-party minor modes
+(use-package info
+  :ensure nil
+  :defines Info-mode-map
+  :bind
+  (:map Info-mode-map
+        ("R" . info-display-manual)
+        ("s" . consult-info))
+  (:map help-map
+        ("s" . info-lookup-symbol)))
 
-(require 'lina-puni)
+(use-package man
+  :ensure nil
+  :functions Man-notify-when-ready@display-buffer
+  :config
+  (define-advice Man-notify-when-ready (:override (buffer) display-buffer)
+    "Call `display-buffer' with BUFFER and action (category . man)."
+    (display-buffer buffer '(nil (category . man)))))
 
-(use-package aggressive-indent
-  :ensure t
-  :pin gnu
-  :hook (lisp-data-mode-hook . aggressive-indent-mode))
+;;; built-in minor modes
 
-(use-package gcmh
-  :ensure t
-  :delight gcmh-mode
-  :hook (after-init-hook . gcmh-mode))
+;;;; built-in global minor modes
+
+(use-package recentf
+  :ensure nil
+  :custom
+  (recentf-mode t)
+  (recentf-max-saved-items nil)
+  (recentf-exclude `(,(rx bos "/nix/store/" (* nonl)))))
+
+(use-package eldoc
+  :ensure nil
+  :custom
+  (eldoc-minor-mode-string nil)
+  (eldoc-echo-area-use-multiline-p nil))
+
+(use-package display-fill-column-indicator
+  :ensure nil
+  :custom
+  (display-fill-column-indicator-character nil)
+  (global-display-fill-column-indicator-mode t)
+  (global-display-fill-column-indicator-modes '(prog-mode))
+  :custom-face
+  (fill-column-indicator ((t :foreground ,"grey" :background unspecified))))
+
+(use-package savehist
+  :ensure nil
+  :custom
+  (savehist-mode t)
+  (savehist-additional-variables '(kill-ring)))
+
+(use-package saveplace
+  :ensure nil
+  :custom
+  (save-place-mode t))
+
+;;;; built-in local minor modes
+
+(use-package flymake
+  :ensure nil
+  :config
+  (unless (or (server-running-p)
+              (display-graphic-p))
+    (setq-default flymake-show-diagnostics-at-end-of-line 'short))
+  :bind
+  (:map project-prefix-map
+        ("n" . flymake-show-project-diagnostics))
+  (:map flymake-mode-map
+        ("C-x n" . flymake-show-buffer-diagnostics)))
+
+;;;;; eglot
+
+(require 'eglot)
+(setopt eglot-stay-out-of '(flymake)
+        eglot-send-changes-idle-time 1
+        eglot-server-programs
+        '(((python-mode python-ts-mode) "ty" "server")
+          (haskell-mode "haskell-language-server-wrapper" "--lsp")))
+(add-hook 'eglot-managed-mode-hook
+          (defun lina/eglot-hook ()
+            (eglot-inlay-hints-mode (if (member major-mode
+                                                '(python-mode python-ts-mode))
+                                        -1
+                                      t))
+            (add-hook 'flymake-diagnostic-functions
+                      #'eglot-flymake-backend nil t)
+            (flymake-mode t)))
+
+;;; built-in commands
+
+(use-package project
+  :ensure nil
+  :bind
+  (:map project-prefix-map
+        ("d" . project-dired)))
+
+(use-package xref
+  :ensure nil
+  :custom
+  (xref-prompt-for-identifier nil)
+  (xref-show-definitions-function #'xref-show-definitions-completing-read))
+
+(use-package isearch
+  :ensure nil
+  :bind
+  ("C-r" . isearch-backward-regexp)
+  ("C-s" . isearch-forward-regexp)
+  (:map isearch-mode-map
+        ("ESC" . isearch-exit)
+        ("TAB" . isearch-toggle-symbol)))
+
+(use-package find-func
+  :ensure nil
+  :custom
+  (find-function-mode t)
+  (find-function-mode-lower-precedence t))
+
+(use-package ispell
+  :ensure nil
+  :custom
+  (ispell-dictionary "en_GB"))
+
+(use-package browse-url
+  :ensure nil
+  :custom
+  (browse-url-handlers `((,(rx ".pdf" eos)
+                          .
+                          ,(cl-case system-type
+                             (gnu/linux #'browse-url-xdg-open))))))
+
+(use-package windmove
+  :ensure nil
+  :custom (windmove-mode t)
+  :bind (:map windmove-mode-map
+              ("C-S-<left>" . windmove-swap-states-left)
+              ("C-S-<right>" . windmove-swap-states-right)
+              ("C-S-<up>" . windmove-swap-states-up)
+              ("C-S-<down>" . windmove-swap-states-down)))
+
+;;; built-in externals
+
+(use-package tramp
+  :functions tramp-recentf-cleanup tramp-recentf-cleanup-all tramp-enable-method
+  :ensure nil
+  :demand t
+  :custom
+  (tramp-show-ad-hoc-proxies t)
+  :config
+  (advice-add #'tramp-recentf-cleanup :override #'ignore)
+  (advice-add #'tramp-recentf-cleanup-all :override #'ignore)
+  (tramp-enable-method 'podman)
+  (tramp-enable-method 'distrobox))
+
+(use-package compile
+  :ensure nil
+  :custom
+  ((compilation-scroll-output 'first-error)
+   (compilation-ask-about-save nil)))
+
+(use-package vc-hooks
+  :ensure nil
+  :hook (after-init-hook . (lambda ()
+                             (setq-default vc-handled-backends '(Git)))))
+
+;;;; shells
+
+(use-package shell
+  :ensure nil
+  :custom
+  ((shell-kill-buffer-on-exit t)
+   (explicit-shell-file-name (or
+                              (let ((zsh (executable-find "zsh")))
+                                (and (file-exists-p "~/.zshrc")
+                                     zsh))
+                              "/bin/bash"))))
+
+(use-package term
+  :ensure nil
+  :bind (:map term-raw-map
+              ("C-x" . nil)
+              ("C-h" . nil)
+              ("M-x" . nil)))
+
+(use-package comint
+  :ensure nil
+  :autoload comint-skip-input
+  :custom
+  ((comint-prompt-read-only t)
+   (comint-scroll-to-bottom-on-input t)
+   (comint-move-point-for-output t))
+  :bind (:map comint-mode-map
+              ("<up>" . comint-previous-input)
+              ("<down>" . comint-next-input)
+              ("C-u" . comint-kill-input)))
+
+;;;;; eshell
+
+(use-package esh-mode
+  :functions eshell-reset
+  :ensure nil
+  :config
+  (defun lina/eshell-hook ()
+    (electric-pair-local-mode -1))
+  (when (fboundp 'unix-word-rubout)
+    (bind-key "C-w" #'unix-word-rubout eshell-mode-map))
+  :hook (eshell-mode-hook . lina/eshell-hook)
+  :bind (:map eshell-mode-map
+              ("C-u" . eshell-kill-input)
+              ("C-d" . eshell-send-eof-to-process)))
+
+(use-package eshell
+  :functions eshell/cd
+  :ensure nil
+  :custom
+  (eshell-scroll-to-bottom-on-input t)
+  (eshell-visual-subcommands '(("bootc" "update")))
+  :config
+  (defun lina/eshell-in-buffer-directory ()
+    (interactive)
+    (let ((bufdir default-directory))
+      (with-current-buffer (eshell)
+        (unless (string= bufdir default-directory)
+          (eshell/cd `(,bufdir))
+          (eshell-reset)))))
+  :bind (:map mode-specific-map
+              ("s" . lina/eshell-in-buffer-directory)))
 
 ;;; third-party integrations
 
@@ -682,18 +516,22 @@ with `consult-grep'."
   :custom
   ((dumb-jump-prefer-searcher 'rg))
   :init
-  (setq-default xref-backend-functions '(dumb-jump-xref-activate))
-  (setq-mode-local emacs-lisp-mode
-                   xref-backend-functions
-                   '(dumb-jump-xref-activate elisp--xref-backend t)))
+  (setq-default xref-backend-functions '(dumb-jump-xref-activate)))
 
 (use-package magit
+  :functions magit-clone-read-args@vertico-preselect
   :pin nongnu
   :preface
   (setq magit-define-global-key-bindings nil)
   :custom
   (magit-display-buffer-function #'display-buffer)
   (magit-commit-show-diff nil)
+  :config
+  (define-advice magit-clone-read-args (:around (function) vertico-preselect)
+    (let (vertico-multiform-categories)
+      (push '(vertico-preselect . prompt)
+            (alist-get 'directory vertico-multiform-categories))
+      (funcall function)))
   :bind
   (:map ctl-x-map
         ("g" . magit-dispatch))
@@ -719,10 +557,6 @@ with `consult-grep'."
   :pin nongnu
   :hook (eshell-mode-hook . with-editor-export-editor))
 
-(use-package ruff-format
-  :disabled t
-  :hook (python-mode-hook . ruff-format-on-save-mode))
-
 (use-package delight
   :ensure t)
 
@@ -734,6 +568,157 @@ with `consult-grep'."
   ((ghostel-shell (or (executable-find "zsh")
                       "/bin/sh"))
    (ghostel-term "xterm-256color")))
+
+(use-package apheleia
+  :defines apheleia-mode-alist
+  :ensure t
+  :config
+  (dolist (mode '(python-mode python-ts-mode))
+    (setf (alist-get mode apheleia-mode-alist) '(ruff ruff-isort))))
+
+;;; third-party minor modes
+
+(require 'lina-puni)
+
+(use-package aggressive-indent
+  :ensure t
+  :pin gnu
+  :hook (lisp-data-mode-hook . aggressive-indent-mode))
+
+(use-package gcmh
+  :ensure t
+  :delight gcmh-mode
+  :hook (after-init-hook . gcmh-mode))
+
+;;; built-in virtual major modes
+
+(use-package dired
+  :ensure nil
+  :custom
+  (delete-by-moving-to-trash t)
+  (dired-auto-revert-buffer t)
+  (dired-clean-confirm-killing-deleted-buffers nil)
+  (dired-kill-when-opening-new-dired-buffer t)
+  (dired-listing-switches "-alZ")
+  (dired-recursive-deletes 'always)
+  :hook
+  (dired-mode-hook . dired-hide-details-mode)
+  :bind
+  (:map ctl-x-map
+        ("d" . dired-jump))
+  (:map dired-mode-map
+        ([remap dired-mouse-find-file-other-window]
+         . dired-mouse-find-file)))
+
+;;; built-in language major modes
+
+(use-package prog-mode
+  :ensure nil
+  :init
+  (defun lina/c-w-dwim ()
+    (interactive)
+    (call-interactively (if (use-region-p) #'kill-region #'backward-kill-sexp)))
+  :config
+  (defun lina/prog-mode-hook ()
+    (goto-address-prog-mode t)
+    (electric-pair-local-mode t)
+    (when (fboundp 'delete-trailing-whitespace-mode)
+      (delete-trailing-whitespace-mode t)))
+  :hook (prog-mode-hook . lina/prog-mode-hook)
+  :bind (:map prog-mode-map
+              ("C-w" . lina/c-w-dwim)))
+
+(load-lina "elisp")
+
+(use-package treesit
+  :ensure nil
+  :defines treesit-language-source-alist
+  :init
+  (setf (alist-get 'nix treesit-language-source-alist)
+        '("https://github.com/nix-community/tree-sitter-nix.git"
+          "v0.3.0"))
+  :custom
+  (treesit-auto-install-grammar 'always)
+  (treesit-enabled-modes '(bash-ts-mode
+                           c-ts-mode
+                           json-ts-mode
+                           typescript-ts-mode
+                           tsx-ts-mode
+                           python-ts-mode))
+  (treesit-font-lock-level 4))
+
+(use-package conf-mode
+  :ensure nil
+  :mode
+  (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
+   ((rx "/isyncrc" eos) . conf-space-mode)
+   ((rx ".ovpn" eos) . conf-space-mode)
+   ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ nonl) ".conf" eos)
+    .
+    conf-space-mode)))
+
+(use-package js
+  :ensure nil
+  :custom (js-indent-level 2)
+  :mode ((rx ".conflist" eos) . js-json-mode))
+
+(use-package sh-script
+  :ensure nil
+  :custom
+  (sh-basic-offset 2)
+  :config
+  (defun lina/shell-mode-hook ()
+    (flymake-mode t))
+  :hook (sh-base-mode-hook . lina/shell-mode-hook)
+  :mode ((rx "/.env" (opt ".local")) . sh-mode))
+
+(use-package dockerfile-ts-mode
+  :ensure nil
+  :defines dockerfile-ts-mode
+  :config
+  (setq-mode-local dockerfile-ts-mode indent-line-function
+                   #'indent-relative-first-indent-point)
+  :mode ((rx (or "Docker" "Container") "file" (* nonl) eos)))
+
+(use-package python
+  :ensure nil
+  :custom
+  ((python-flymake-command '("ruff"
+                             "check"
+                             "--quiet"
+                             "--output-format=concise"
+                             "--stdin-filename=stdin"))
+   (python-indent-guess-indent-offset-verbose nil)
+   (python-shell-dedicated 'buffer))
+  :config
+  (defun lina/python-mode-hook ()
+    (setq-local fill-column 79
+                tab-always-indent t)
+    (flymake-mode t)
+    (display-line-numbers-mode t)
+    (when (fboundp 'apheleia-mode)
+      (setq-local apheleia-formatters-respect-fill-column t)
+      (apheleia-mode t)))
+  :hook (python-base-mode-hook . lina/python-mode-hook))
+
+(use-package tex-mode
+  :ensure nil
+  :defines latex-mode
+  :config
+  (setq-mode-local latex-mode compile-command "latexmk \
+-file-line-error \
+-halt-on-error \
+-interaction=nonstopmode \
+-synctex=1")
+  :bind (:map latex-mode-map
+              ("C-c C-c" . recompile)))
+
+(use-package backtrace
+  :ensure nil
+  :config
+  (defun lina/backtrace-mode-hook ()
+    (setq-local truncate-lines nil))
+  :hook (backtrace-mode-hook . lina/backtrace-mode-hook))
 
 ;;; third-party major modes
 
