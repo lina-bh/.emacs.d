@@ -19,8 +19,6 @@
 (package-initialize)
 
 (add-to-list 'load-path (locate-user-emacs-file "lisp/lina"))
-(defun load-lina (file)
-  (load (locate-user-emacs-file (format "lisp/lina/lina-%s.el" file)) nil t t))
 
 ;;;; emacs
 
@@ -74,7 +72,8 @@
    (warning-minimum-level :emergency)
    (xterm-mouse-mode t)
    (xterm-set-window-title t)
-   (auto-revert-mode-text ""))
+   (auto-revert-mode-text "")
+   (register-use-preview nil))
   :custom-face
   (default ((((type x pgtk)) ,linux-font)))
   (fixed-pitch ((((type x pgtk)) ,linux-font)))
@@ -95,9 +94,7 @@
          ("M-," . pop-to-mark-command)
          ("C-," . pop-global-mark)
          ("C-x x" . revert-buffer-quick)
-         ("C-x C-x" . revert-buffer-quick)
-         (:map image-mode-map
-               ([remap revert-buffer] . revert-buffer-quick))))
+         ("C-x C-x" . revert-buffer-quick)))
 
 (use-package server
   :ensure nil
@@ -106,8 +103,6 @@
   (after-init-hook . (lambda ()
                        (unless (server-running-p)
                          (server-start)))))
-
-(load-lina "window")
 
 (require-theme 'modus-themes)
 (add-hook 'after-init-hook (lambda ()
@@ -193,6 +188,10 @@ with `consult-grep'."
   ("M-g" . consult-imenu)
   (:map ctl-x-map
         ("b" . consult-buffer))
+  (:map ctl-x-r-map
+        ("SPC" . consult-register-store)
+        ("j" . consult-register-load)
+        ("b" . consult-bookmark))
   (:map project-prefix-map
         ("g" . consult-ripgrep)
         ("f" . consult-find))
@@ -236,7 +235,8 @@ with `consult-grep'."
   :custom
   (completion-styles '(emacs22 partial-completion orderless))
   (completion-category-overrides
-   `((buffer (styles substring))
+   `((multi-category (styles substring))
+     (buffer (styles substring))
      ,@(mapcar (lambda (cat)
                  (list cat '(styles orderless)))
                '(command symbol function variable symbol-help))))
@@ -260,6 +260,10 @@ with `consult-grep'."
   :bind (:map corfu-map
               ("TAB" . corfu-next)
               ("<backtab>" . corfu-previous)))
+
+(use-package marginalia
+  :ensure t
+  :custom (marginalia-mode t))
 
 ;;;; help
 
@@ -391,7 +395,9 @@ with `consult-grep'."
   ("C-s" . isearch-forward-regexp)
   (:map isearch-mode-map
         ("ESC" . isearch-exit)
-        ("TAB" . isearch-toggle-symbol)))
+        ("TAB" . isearch-toggle-symbol)
+        ("<left>" . isearch-edit-string)
+        ("<right>" . isearch-edit-string)))
 
 (use-package find-func
   :ensure nil
@@ -460,6 +466,9 @@ with `consult-grep'."
 
 (use-package term
   :ensure nil
+  :config
+  (defun lina/term-hook ()
+    (face-remap-set-base 'default '(:family "JetBrains Mono NL")))
   :bind (:map term-raw-map
               ("C-x" . nil)
               ("C-h" . nil)
@@ -497,7 +506,8 @@ with `consult-grep'."
   :ensure nil
   :custom
   (eshell-scroll-to-bottom-on-input t)
-  (eshell-visual-subcommands '(("bootc" "update")))
+  (eshell-visual-subcommands '(("sudo" "bootc" "update")
+                               ("sudo" "dnf" "install")))
   :config
   (defun lina/eshell-in-buffer-directory ()
     (interactive)
@@ -506,8 +516,9 @@ with `consult-grep'."
         (unless (string= bufdir default-directory)
           (eshell/cd `(,bufdir))
           (eshell-reset)))))
-  :bind (:map mode-specific-map
-              ("s" . lina/eshell-in-buffer-directory)))
+  (define-advice eshell (:around (fun &rest _) display-buffer)
+    (let ((display-buffer--same-window-action '(())))
+      (call-interactively fun))))
 
 ;;; third-party integrations
 
@@ -560,8 +571,6 @@ with `consult-grep'."
 (use-package delight
   :ensure t)
 
-(require 'lina-llm)
-
 (use-package ghostel
   :pin melpa
   :custom
@@ -572,13 +581,37 @@ with `consult-grep'."
 (use-package apheleia
   :defines apheleia-mode-alist
   :ensure t
-  :config
-  (dolist (mode '(python-mode python-ts-mode))
-    (setf (alist-get mode apheleia-mode-alist) '(ruff ruff-isort))))
+  :custom
+  (apheleia-formatters
+   '((ruff "uvx"
+           "--quiet"
+           "ruff"
+           "format"
+           "--silent"
+           (apheleia-formatters-fill-column "--line-length")
+           "--stdin-filename"
+           filepath
+           "-")
+     (ruff-isort "uvx"
+                 "--quiet"
+                 "ruff"
+                 "check"
+                 "-n"
+                 "--select"
+                 "I"
+                 "--fix"
+                 "--fix-only"
+                 "--stdin-filename"
+                 filepath
+                 "-")
+     (tex-fmt "tex-fmt"
+              "--stdin"
+              "-v")))
+  (apheleia-mode-alist
+   '((python-base-mode . (ruff ruff-isort))
+     (tex-mode . tex-fmt))))
 
 ;;; third-party minor modes
-
-(require 'lina-puni)
 
 (use-package aggressive-indent
   :ensure t
@@ -610,6 +643,11 @@ with `consult-grep'."
         ([remap dired-mouse-find-file-other-window]
          . dired-mouse-find-file)))
 
+(use-package image-mode
+  :ensure nil
+  :bind (:map image-mode-map
+              ([remap revert-buffer] . revert-buffer-quick)))
+
 ;;; built-in language major modes
 
 (use-package prog-mode
@@ -621,14 +659,11 @@ with `consult-grep'."
   :config
   (defun lina/prog-mode-hook ()
     (goto-address-prog-mode t)
-    (electric-pair-local-mode t)
     (when (fboundp 'delete-trailing-whitespace-mode)
       (delete-trailing-whitespace-mode t)))
   :hook (prog-mode-hook . lina/prog-mode-hook)
   :bind (:map prog-mode-map
               ("C-w" . lina/c-w-dwim)))
-
-(load-lina "elisp")
 
 (use-package treesit
   :ensure nil
@@ -705,11 +740,22 @@ with `consult-grep'."
   :ensure nil
   :defines latex-mode
   :config
-  (setq-mode-local latex-mode compile-command "latexmk \
+  (defun lina/tex-hook ()
+    (setq-local compile-command "latexmk \
 -file-line-error \
 -halt-on-error \
 -interaction=nonstopmode \
 -synctex=1")
+    (visual-line-mode t)
+    (when (fboundp 'hungry-delete-mode)
+      (hungry-delete-mode t))
+    (when (fboundp 'smartparens-mode)
+      (smartparens-mode t))
+    (when (and (fboundp 'apheleia-mode)
+               (bound-and-true-p apheleia-mode-alist)
+               (assq 'tex-mode apheleia-mode-alist))
+      (apheleia-mode t)))
+  :hook (tex-mode-hook . lina/tex-hook)
   :bind (:map latex-mode-map
               ("C-c C-c" . recompile)))
 
@@ -741,4 +787,11 @@ created by FUNC will inherit the caller's environment." nil 'macro)
   :ensure t
   :mode ((rx "." (or "yaml" "yml") eos)))
 
-(require 'lina-mail)
+;;; other files
+
+(load "lina-window")
+(load "lina-smartparens")
+(load "lina-elisp")
+(load "lina-llm")
+(load "lina-mail")
+;; (load "lina-puni")

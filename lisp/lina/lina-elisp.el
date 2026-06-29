@@ -24,6 +24,9 @@ disabled.
 
 (fn &optional ARG)" t nil)
 
+(use-package hungry-delete
+  :ensure t)
+
 (use-package elisp-mode
   :ensure nil
   :config
@@ -44,6 +47,8 @@ disabled.
       (view-mode)
       (when (fboundp 'corfu-mode)
         (corfu-mode t)))
+     ((string-match-p (rx bos "*Pp") (buffer-name))
+      (view-mode))
      (t
       (let ((auto-insert-query nil)
             (auto-insert-alist
@@ -55,7 +60,10 @@ disabled.
                    (goto-char (point-max)))))))
         (auto-insert))
       (flymake-mode t)
-      (puni-mode t))))
+      (when (fboundp 'smartparens-strict-mode)
+        (smartparens-strict-mode t))
+      (when (fboundp 'hungry-delete-mode)
+        (hungry-delete-mode t)))))
   :hook (emacs-lisp-mode-hook . lina/elisp-hook)
   :bind (:map emacs-lisp-mode-map
               ("C-c C-c" . elisp-eval-region-or-buffer)))
@@ -79,8 +87,6 @@ disabled.
   :config
   (define-advice pp-display-expression
       (:after (_expression out-buffer-name &optional _lisp) readonly)
-    (with-current-buffer out-buffer-name
-      (view-mode))
     (pop-to-buffer out-buffer-name))
   :bind (:map emacs-lisp-mode-map ("C-c C-p" . pp-macroexpand-last-sexp)))
 

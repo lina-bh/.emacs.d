@@ -24,8 +24,14 @@
 
 (setopt display-buffer-alist
         `(
-          ((derived-mode . Info-mode)
-           display-buffer-reuse-mode-window)
+          ((or
+            (derived-mode . apropos-mode)
+            (derived-mode . Info-mode)
+            ,(rx bos "*" "Man"))
+           display-buffer-reuse-mode-window
+           (mode . (Man-mode
+                    Info-mode
+                    apropos-mode)))
           ((derived-mode . magit-diff-mode)
            (display-buffer-reuse-mode-window)
            (mode . magit-log-mode))
@@ -34,12 +40,6 @@
             display-buffer-at-bottom))
           ((derived-mode . calc-mode)
            display-buffer-at-bottom)
-          ((or
-            (category . man)
-            (major-mode . Man-mode)
-            ,(rx bos "*Man"))
-           (display-buffer-reuse-mode-window)
-           (mode . Man-mode))
           (,(rx bos "*Customize")
            display-buffer-reuse-mode-window)
           (,(rx bos "*Pp")
@@ -55,8 +55,7 @@
                                   "Python"
                                   (and (* nonl) "REPL")))
                     ,(rx (or "eshell") "*" eos)))
-           (display-buffer-reuse-mode-window
-            display-buffer-at-bottom)
+           display-buffer-reuse-mode-window
            (mode . (comint-mode
                     eshell-mode)))
           ((or
