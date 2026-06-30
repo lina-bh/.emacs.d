@@ -380,7 +380,8 @@ with `consult-grep'."
   :ensure nil
   :bind
   (:map project-prefix-map
-        ("d" . project-dired)))
+        ("d" . project-dired)
+        ("s" . project-eshell)))
 
 (use-package xref
   :ensure nil
