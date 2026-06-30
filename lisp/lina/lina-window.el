@@ -55,7 +55,8 @@
                                   "Python"
                                   (and (* nonl) "REPL")))
                     ,(rx (or "eshell") "*" eos)))
-           display-buffer-reuse-mode-window
+           ,(cons #'display-buffer-reuse-mode-window
+                  (car display-buffer-base-action))
            (mode . (comint-mode
                     eshell-mode)))
           ((or
