@@ -63,6 +63,7 @@
  inhibit-startup-screen t
  initial-major-mode 'fundamental-mode
  initial-scratch-message nil
+ imenu-flatten 'group
  kill-do-not-save-duplicates t
  kill-region-dwim 'emacs-word
  make-backup-files nil
@@ -243,8 +244,8 @@
   ("C-x p f" . consult-find)
   (:map help-map
         ("i" . consult-info))
-  (:map Info-mode-map
-        ("s" . consult-info)))
+  (:package info :map Info-mode-map
+            ("s" . consult-info)))
 
 ;;;; buffer completion
 
@@ -659,7 +660,7 @@
   (defun lina/prog-mode-hook ()
     (if (fboundp 'delete-trailing-whitespace-mode)
         (delete-trailing-whitespace-mode t)
-      (add-hook 'after-save-hook #'delete-trailing-whitespace-if-possible nil t)))
+      (add-hook 'after-save-hook #'delete-trailing-whitespace nil t)))
   :hook (prog-mode-hook . lina/prog-mode-hook)
   :bind (:map prog-mode-map
               ("C-," . xref-go-back)
@@ -787,6 +788,7 @@ created by FUNC will inherit the caller’s environment.
 (load "lina-llm")
 (load "lina-mail")
 (load "lina-eglot")
+(load "lina-org")
 ;; (load "lina-puni")
 
 ;;; init.el ends here

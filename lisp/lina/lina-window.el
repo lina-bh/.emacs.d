@@ -28,7 +28,7 @@
                     Info-mode
                     apropos-mode)))
           ("COMMIT_EDITMSG"
-           display-buffer-at-bottom
+           display-buffer-below-selected
            (dedicated . t))
           ((derived-mode . magit-mode)
            display-buffer-reuse-mode-window
