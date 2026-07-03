@@ -1,12 +1,8 @@
 ;; -*- lexical-binding: t; -*-
 (eval-when-compile
-  (require 'cl-lib)
-  (require 'image-mode)
-  (require 'elisp-mode)
-  (require 'python))
+  (require 'cl-lib))
 
 (autoload 'setq-mode-local "mode-local")
-(autoload 'server-running-p "server")
 
 ;;; belated init
 
@@ -110,22 +106,23 @@
            ("M-," . pop-to-mark-command)
            ("C-," . pop-global-mark)
            ("C-x x" . revert-buffer-quick)
-           ("C-x C-x" . revert-buffer-quick)
-           :package image-mode :map image-mode-map
-           ([remap revert-buffer] . revert-buffer-quick))
+           ("C-x C-x" . revert-buffer-quick))
 
 ;;;; core hooks
-(add-hook 'after-init-hook (lambda ()
-                             (unless (server-running-p)
-                               (server-start))))
+(use-package server
+  :ensure nil
+  :autoload server-running-p
+  :hook (emacs-startup-hook . (lambda ()
+                                (unless (server-running-p)
+                                  (server-start)))))
 
 ;;;; theme
-(require-theme 'modus-themes)
-(add-hook 'window-setup-hook (lambda ()
-                               (load-theme (if (null initial-window-system)
-                                               'modus-vivendi
-                                             'modus-operandi)
-                                           t)))
+(use-package modus-themes
+  :no-require t
+  :init
+  (require-theme 'modus-themes)
+  :hook (window-setup-hook . (lambda ()
+                               (load-theme 'modus-operandi t))))
 
 ;;;; fonts
 (set-frame-font "Iosevka-10.5" nil t)
@@ -178,9 +175,7 @@
      ,@(mapcar (lambda (cat)
                  (list cat '(styles orderless)))
                '(command symbol function variable symbol-help))))
-  (orderless-component-separator "[- ]")
-  :config
-  (setq-mode-local emacs-lisp-mode completion-styles '(orderless)))
+  (orderless-component-separator "[- ]"))
 
 (use-package vertico
   :ensure t
@@ -207,6 +202,11 @@
     (interactive)
     (isearch-mode t nil nil nil 'isearch-symbol-regexp)
     (isearch-edit-string))
+  (defun embark-isearch-symbol-backward ()
+    "`embark-isearch-backward' but in symbol mode."
+    (interactive)
+    (isearch-mode nil nil nil nil 'isearch-symbol-regexp)
+    (isearch-edit-string))
   :bind
   (("C-." . embark-act)
    ("M-." . embark-dwim)
@@ -214,11 +214,15 @@
    (:map help-map
          ("b" . embark-bindings))
    (:map embark-general-map
-         ("C-s" . embark-isearch-symbol-forward))
+         ("C-s" . embark-isearch-symbol-forward)
+         ("C-r" . embark-isearch-symbol-backward))
+   (:map embark-symbol-map
+         ("RET" . embark-find-definition))
    (:map minibuffer-local-map
          ("C-<return>" . embark-export))))
 
 (use-package consult
+  :defines Info-mode-map
   :ensure t
   :autoload consult-ripgrep consult-grep
   :custom
@@ -239,8 +243,8 @@
   ("C-x p f" . consult-find)
   (:map help-map
         ("i" . consult-info))
-  (:package info :map Info-mode-map
-            ("s" . consult-info)))
+  (:map Info-mode-map
+        ("s" . consult-info)))
 
 ;;;; buffer completion
 
@@ -272,6 +276,7 @@
   (global-corfu-mode t)
   (global-corfu-modes '((not comint-mode eshell-mode) t))
   :bind (:map corfu-map
+              ("C-g" . corfu-quit)
               ("TAB" . corfu-next)
               ("<backtab>" . corfu-previous)))
 
@@ -403,9 +408,9 @@
 
 (use-package find-func
   :ensure nil
-  :custom
-  (find-function-mode t)
-  (find-function-mode-lower-precedence t))
+  :bind
+  ("C-x F" . find-function-other-window)
+  ("C-x L" . find-library-other-window))
 
 (use-package ispell
   :ensure nil
@@ -576,7 +581,7 @@
         ("C-u" . ghostel--send-event)))
 
 (use-package apheleia
-  :defines apheleia-mode-alist
+  :defines apheleia-mode-alist python-mode
   :ensure t
   :custom
   (apheleia-formatters
@@ -742,6 +747,12 @@
   (defun lina/backtrace-mode-hook ()
     (setq-local truncate-lines nil))
   :hook (backtrace-mode-hook . lina/backtrace-mode-hook))
+
+(use-package image-mode
+  :ensure nil
+  :bind
+  (:map image-mode-map
+        ([remap revert-buffer] . revert-buffer-quick)))
 
 ;;; third-party major modes
 

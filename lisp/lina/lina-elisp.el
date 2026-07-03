@@ -41,6 +41,8 @@ disabled.
       (setq-local xref-backend-functions '(dumb-jump-xref-activate
                                            elisp--xref-backend
                                            t)))
+    (when (assq 'orderless completion-styles-alist)
+      (setq-local completion-styles '(orderless)))
     (cond
      ((and (buffer-file-name)
            (file-in-directory-p (buffer-file-name) package-user-dir))
@@ -75,12 +77,17 @@ disabled.
   :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c" . lina/ielm-interrupt)))
 
 (use-package pp
-  :functions pp-display-expression@readonly
+  :functions (pp-display-expression@select-window
+              pp-macroexpand-last-sexp@use-package-expand-minimally)
   :ensure nil
   :config
-  ;; (define-advice pp-display-expression
-  ;;     (:after (_expression out-buffer-name &optional _lisp) readonly)
-  ;;   (pop-to-buffer out-buffer-name))
+  (define-advice pp-display-expression (:after (_expression out-buffer-name &rest _) select-window)
+    (let ((window (get-buffer-window out-buffer-name)))
+      (when (window-live-p window)
+        (select-window window))))
+  (define-advice pp-macroexpand-last-sexp (:around (func &rest args) use-package-expand-minimally)
+    (let ((use-package-expand-minimally t))
+      (apply func args)))
   :bind (:map emacs-lisp-mode-map ("C-c C-p" . pp-macroexpand-last-sexp)))
 
 (use-package aggressive-indent

@@ -15,6 +15,8 @@
 
 (setopt display-buffer-alist
         `(
+          ((category . xref-jump)
+           ,(car display-buffer-base-action))
           ("\\*Tetris\\*"
            display-buffer-full-frame)
           ((or
@@ -25,6 +27,9 @@
            (mode . (Man-mode
                     Info-mode
                     apropos-mode)))
+          ("COMMIT_EDITMSG"
+           display-buffer-at-bottom
+           (dedicated . t))
           ((derived-mode . magit-mode)
            display-buffer-reuse-mode-window
            (mode . magit-mode))
