@@ -163,6 +163,7 @@
 
 (use-package marginalia
   :ensure t
+  :if (>= emacs-major-version 31)
   :custom (marginalia-mode t))
 
 (use-package orderless
