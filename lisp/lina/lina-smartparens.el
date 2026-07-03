@@ -81,6 +81,7 @@ ID, ACTION, CONTEXT."
            ("C-c ," . sp-forward-barf-sexp)
            ("C-c s" . sp-splice-sexp)
            ("C-c r" . sp-raise-sexp)
+           ("M-r" . sp-raise-sexp)
            ("M-<up>" . sp-backward-up-sexp)
            ("M-<down>" . sp-down-sexp)
            ("M-<left>" . sp-backward-parallel-sexp)
