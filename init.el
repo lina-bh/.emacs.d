@@ -91,10 +91,7 @@
  vc-follow-symlinks t
  view-read-only t
  warning-minimum-level :emergency
- xterm-mouse-mode t
- xterm-set-window-title t
- mouse-wheel-scroll-amount '(1)
- )
+ mouse-wheel-scroll-amount '(1))
 (setopt trusted-content (list (locate-user-emacs-file "lisp/lina/")
                               (locate-user-emacs-file "user-lisp/")))
 
@@ -133,6 +130,17 @@
 ;;;; fonts
 (set-frame-font "Iosevka-10.5" nil t)
 (set-face-attribute 'fixed-pitch-serif nil :inherit 'fixed-pitch)
+
+;;;; terminal
+(use-package term/xterm
+  :ensure nil
+  :custom
+  ((xterm-mouse-mode t)
+   (xterm-set-window-title t)
+   (xterm-extra-capabilities '(modifyOtherKeys
+                               reportBackground
+                               getSelection
+                               setSelection))))
 
 ;;; completion
 
