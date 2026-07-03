@@ -24,9 +24,6 @@ disabled.
 
 (fn &optional ARG)" t nil)
 
-(use-package hungry-delete
-  :ensure t)
-
 (use-package elisp-mode
   :ensure nil
   :config
@@ -36,7 +33,10 @@ disabled.
      outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ nonl)) 0))
      imenu-generic-expression (append outline-imenu-generic-expression
                                       imenu-generic-expression)
-     flymake-diagnostic-functions '(elisp-flymake-byte-compile t))
+     flymake-diagnostic-functions '(elisp-flymake-byte-compile t)
+     elisp-flymake-byte-compile-load-path load-path
+     trusted-content (append elisp-flymake-byte-compile-load-path
+                             trusted-content))
     (when (fboundp 'dumb-jump-xref-activate)
       (setq-local xref-backend-functions '(dumb-jump-xref-activate
                                            elisp--xref-backend
@@ -58,12 +58,8 @@ disabled.
                    (setq-local lexical-binding t)
                    (add-file-local-variable-prop-line 'lexical-binding t)
                    (goto-char (point-max)))))))
-        (auto-insert))
-      (flymake-mode t)
-      (when (fboundp 'smartparens-strict-mode)
-        (smartparens-strict-mode t))
-      (when (fboundp 'hungry-delete-mode)
-        (hungry-delete-mode t)))))
+        (auto-insert))))
+    (show-paren-local-mode))
   :hook (emacs-lisp-mode-hook . lina/elisp-hook)
   :bind (:map emacs-lisp-mode-map
               ("C-c C-c" . elisp-eval-region-or-buffer)))
@@ -76,18 +72,20 @@ disabled.
     (interactive)
     (comint-skip-input)
     (ielm-return))
-  (defun lina/ielm-hook ()
-    (puni-mode t))
-  :hook (inferior-emacs-lisp-mode-hook . lina/ielm-hook)
   :bind (:map inferior-emacs-lisp-mode-map ("C-c C-c" . lina/ielm-interrupt)))
 
 (use-package pp
   :functions pp-display-expression@readonly
   :ensure nil
   :config
-  (define-advice pp-display-expression
-      (:after (_expression out-buffer-name &optional _lisp) readonly)
-    (pop-to-buffer out-buffer-name))
+  ;; (define-advice pp-display-expression
+  ;;     (:after (_expression out-buffer-name &optional _lisp) readonly)
+  ;;   (pop-to-buffer out-buffer-name))
   :bind (:map emacs-lisp-mode-map ("C-c C-p" . pp-macroexpand-last-sexp)))
+
+(use-package aggressive-indent
+  :ensure t
+  :pin gnu
+  :hook (lisp-data-mode-hook . aggressive-indent-mode))
 
 (provide 'lina-elisp)

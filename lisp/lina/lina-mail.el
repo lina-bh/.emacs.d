@@ -3,6 +3,7 @@
   (require 'cl-lib))
 
 (use-package mu4e
+  :load-path (lambda () "/usr/share/emacs/site-lisp/mu4e")
   :custom
   (mail-user-agent 'mu4e-user-agent)
   (message-dont-reply-to-names #'mu4e-personal-or-alternative-address-p)
@@ -11,7 +12,7 @@
   (mu4e-trash-folder "/Trash")
   (mu4e-refile-folder "/Archive")
   (mu4e-drafts-folder "/Drafts")
-  (mu4e-get-mail-command (format "mbsync --verbose %s" user-mail-address))
+  (mu4e-get-mail-command (format "mbsync %s" user-mail-address))
   (mu4e-completing-read-function #'completing-read)
   (mu4e-read-option-use-builtin nil)
   (mu4e-change-filenames-when-moving t)
@@ -28,19 +29,6 @@
   (mu4e-split-view 'single-window)
   (mu4e-modeline-mode nil)
   (mu4e-confirm-quit nil)
-  :config
-  (defun lina/mu4e-compose-mbsync-push-sent ()
-    (let (mu4e-get-mail-command)
-      (catch t
-        (setq mu4e-get-mail-command (format "mbsync --push push:%s"
-                                            (substring (cl-case mu4e-message-post-action
-                                                         (postpone mu4e-drafts-folder)
-                                                         (send mu4e-sent-folder)
-                                                         (t (throw nil nil)))
-                                                       1)))
-        (mu4e-update-mail-and-index t))))
-  ;; :hook
-  ;; (mu4e-compose-post-hook . lina/mu4e-compose-mbsync-push-sent)
   :bind
   (("C-x m" . mu4e-jump-to-favorite)
    (:map mu4e-headers-mode-map
@@ -66,7 +54,7 @@
 (use-package gnus
   :ensure nil
   :custom
-  (gnus-select-method '(nnmaildir "" (directory "~/Maildir/")))
+  (gnus-select-method '(nnmaildir "" (directory "~/Mail/")))
   (gnus-secondary-select-methods '((nntp "news.gmane.io")))
   (gnus-use-full-window nil)
   (gnus-permanently-visible-groups (rx (or "INBOX"
@@ -84,5 +72,3 @@
         ("n" . gnus-summary-next-article)
         ("p" . gnus-summary-prev-article)
         ("b" . gnus-article-prev-page)))
-
-(provide 'lina-mail)
