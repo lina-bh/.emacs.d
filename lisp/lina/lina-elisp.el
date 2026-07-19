@@ -24,45 +24,98 @@ disabled.
 
 (fn &optional ARG)" t nil)
 
+(defconst lina-elisp-auto-insert '(nil
+                                   ";;; "
+                                   (file-name-nondirectory (buffer-file-name))
+                                   " --- "
+                                   (file-name-base (buffer-file-name))
+                                   "  -*- lexical-binding: t; -*-" '(setq lexical-binding t)
+                                   "
+
+;; Copyright (C) " (format-time-string "%Y") " Lina Bhaile <emacs-devel@linabee.uk>
+
+;; Author: Lina Bhaile <emacs-devel@linabee.uk>
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;;
+
+;;; Code:
+
+" _ "
+
+(provide '"
+                                   (file-name-base (buffer-file-name))
+                                   ")
+;;; " (file-name-nondirectory (buffer-file-name)) " ends here\n"))
+
 (use-package elisp-mode
+  :functions (lina-display-log-after-interactive-compile)
   :ensure nil
   :config
-  (defun lina/elisp-hook ()
+  (setf (alist-get '("\\.el\\'" . "Emacs Lisp header")
+                   auto-insert-alist
+                   nil
+                   nil
+                   #'equal)
+        lina-elisp-auto-insert)
+  (defun lina-display-log-after-interactive-compile (&rest _ignore)
+    (display-buffer byte-compile-log-buffer))
+  (advice-add #'elisp-byte-compile-buffer :after
+              #'lina-display-log-after-interactive-compile)
+  (defun lina-elisp-hook ()
     (setq-local
      outline-regexp (rx (and ";;;" (0+ ";") blank))
-     outline-imenu-generic-expression `(("Headings" ,(rx bol (regexp outline-regexp) (0+ nonl)) 0))
+     outline-imenu-generic-expression
+     `(("Headings" ,(rx bol (regexp outline-regexp) (0+ nonl)) 0))
      imenu-generic-expression (append outline-imenu-generic-expression
                                       imenu-generic-expression)
      flymake-diagnostic-functions '(elisp-flymake-byte-compile t)
-     elisp-flymake-byte-compile-load-path load-path
-     trusted-content (append elisp-flymake-byte-compile-load-path
-                             trusted-content))
+     elisp-flymake-byte-compile-load-path load-path)
     (when (fboundp 'dumb-jump-xref-activate)
-      (setq-local xref-backend-functions '(dumb-jump-xref-activate
-                                           elisp--xref-backend
+      (setq-local xref-backend-functions '(elisp--xref-backend
+                                           dumb-jump-xref-activate
                                            t)))
     (when (assq 'orderless completion-styles-alist)
       (setq-local completion-styles '(orderless)))
+    (add-hook 'before-save-hook #'check-parens nil t)
     (cond
-     ((and (buffer-file-name)
-           (file-in-directory-p (buffer-file-name) package-user-dir))
-      (view-mode)
-      (when (fboundp 'corfu-mode)
-        (corfu-mode t)))
-     ((string-match-p (rx bos "*Pp") (buffer-name))
+     ;; ((and (buffer-file-name)
+     ;;       (file-in-directory-p (buffer-file-name) package-user-dir))
+     ;;  (view-mode)
+     ;;  (when (fboundp 'corfu-mode)
+     ;;    (corfu-mode t)))
+     ((or (eq major-mode 'elisp-byte-code-mode)
+          (string-match-p (rx bos "*Pp") (buffer-name)))
       (view-mode))
      (t
-      (let ((auto-insert-query nil)
-            (auto-insert-alist
-             `(("\\.el\\'"
-                .
-                ,(lambda ()
-                   (setq-local lexical-binding t)
-                   (add-file-local-variable-prop-line 'lexical-binding t)
-                   (goto-char (point-max)))))))
-        (auto-insert))))
+      (let ((auto-insert-query nil))
+        (auto-insert))
+      (flymake-mode)))
     (show-paren-local-mode))
-  :hook (emacs-lisp-mode-hook . lina/elisp-hook)
+  (defun lina-lisp-data-hook ()
+    "Hook for `lisp-data-mode' and descendant modes i.e `emacs-lisp-mode'."
+    (setq-local completion-at-point-functions
+                `(,@(and (fboundp 'cape-elisp-symbol)
+                         (list #'cape-elisp-symbol))
+                  elisp-completion-at-point
+                  ,@(default-value 'completion-at-point-functions)
+                  t)))
+  :hook ((lisp-data-mode-hook . lina-lisp-data-hook)
+         (emacs-lisp-mode-hook . lina-elisp-hook))
   :bind (:map emacs-lisp-mode-map
               ("C-c C-c" . elisp-eval-region-or-buffer)))
 
@@ -88,11 +141,17 @@ disabled.
   (define-advice pp-macroexpand-last-sexp (:around (func &rest args) use-package-expand-minimally)
     (let ((use-package-expand-minimally t))
       (apply func args)))
-  :bind (:map emacs-lisp-mode-map ("C-c C-p" . pp-macroexpand-last-sexp)))
+  :bind (:map lisp-mode-shared-map ("C-c C-p" . pp-macroexpand-last-sexp)))
+
+(use-package ert
+  :ensure nil
+  :bind (:map emacs-lisp-mode-map
+              ("C-c C-t" . ert-run-tests-interactively)))
 
 (use-package aggressive-indent
   :ensure t
   :pin gnu
-  :hook (lisp-data-mode-hook . aggressive-indent-mode))
+  :hook (lisp-data-mode-hook . aggressive-indent-mode)
+  :delight " aggro")
 
 (provide 'lina-elisp)

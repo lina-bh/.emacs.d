@@ -9,7 +9,8 @@
 (unless (>= emacs-major-version 31)
   (defvar user-lisp-directory (locate-user-emacs-file "user-lisp/"))
   (cl-pushnew user-lisp-directory load-path)
-  (let ((autoload-file (expand-file-name ".user-lisp-autoloads.el")))
+  (let ((autoload-file (expand-file-name ".user-lisp-autoloads.el"
+                                         user-lisp-directory)))
     (loaddefs-generate (list user-lisp-directory)
                        autoload-file)
     (load autoload-file)))
@@ -19,7 +20,8 @@
 
 (setq-default use-package-always-defer t
               use-package-enable-imenu-support t
-              use-package-hook-name-suffix nil)
+              use-package-hook-name-suffix nil
+              use-package-check-before-init t)
 
 ;;;; package.el
 
@@ -40,76 +42,157 @@
 (load custom-file t)
 
 ;;; emacs
-
-(setopt
- Man-notify-method 'thrifty
- auth-sources '("~/.authinfo")
- auto-save-default nil
- backward-delete-char-untabify-method 'hungry
- bidi-inhibit-bpa t
- bidi-paragraph-direction 'left-to-right
- column-number-mode t
- confirm-kill-processes nil
- create-lockfiles nil
- cursor-in-non-selected-windows nil
- delete-selection-mode t
- enable-recursive-minibuffers t
- extended-command-suggest-shorter nil
- fast-but-imprecise-scrolling t
- fill-column 80
- garbage-collection-messages t
- indent-tabs-mode nil
- indicate-empty-lines t
- inhibit-startup-screen t
- initial-major-mode 'fundamental-mode
- initial-scratch-message nil
- imenu-flatten 'group
- kill-do-not-save-duplicates t
- kill-region-dwim 'emacs-word
- make-backup-files nil
- max-redisplay-ticks 1000000
- mouse-autoselect-window t
- native-comp-async-on-battery-power nil
- native-comp-async-report-warnings-errors 'silent
- read-extended-command-predicate #'command-completion-default-include-p
- read-process-output-max 1048576
- redisplay-skip-fontification-on-input t
- register-use-preview nil
- repeat-mode t
- require-final-newline t
- ring-bell-function #'ignore
- scroll-conservatively 101
- show-paren-context-when-offscreen t
- suggest-key-bindings nil
- tab-always-indent 'complete
- tooltip-delay 0.1
- use-dialog-box nil
- use-short-answers t
- vc-follow-symlinks t
- view-read-only t
- warning-minimum-level :emergency
- mouse-wheel-scroll-amount '(1))
-(setopt trusted-content (list (locate-user-emacs-file "lisp/lina/")
-                              (locate-user-emacs-file "user-lisp/")))
-
-;;;; binds
-(bind-keys ("M-u" . ignore)
-           ("M-;" . comment-line)
-           ("C-l" . redraw-display)
-           ("C-x C-g" . ignore)
-           ("M-<up>" . backward-up-list)
-           ("M-<down>" . down-list)
-           ("M-<left>" . backward-sexp)
-           ("M-<right>" . forward-sexp)
-           ("C-k" . kill-whole-line)
-           ("C-z" . undo)
-           ("C-S-z" . undo-redo)
-           ("M-," . pop-to-mark-command)
-           ("C-," . pop-global-mark)
-           ("C-x x" . revert-buffer-quick)
-           ("C-x C-x" . revert-buffer-quick))
+(use-package emacs
+  :ensure nil
+  :custom
+  ((directory-abbrev-alist
+    (list (cons (file-name-concat "/var/home/" (user-login-name)) "~")))
+   (auto-save-default nil)
+   (backward-delete-char-untabify-method 'hungry)
+   (bidi-inhibit-bpa t)
+   (bidi-paragraph-direction 'left-to-right)
+   (column-number-mode t)
+   (confirm-kill-processes nil)
+   (create-lockfiles nil)
+   (cursor-in-non-selected-windows nil)
+   (delete-selection-mode t)
+   (enable-recursive-minibuffers t)
+   (extended-command-suggest-shorter nil)
+   (fast-but-imprecise-scrolling t)
+   (fill-column 80)
+   (garbage-collection-messages t)
+   (indent-tabs-mode nil)
+   (indicate-empty-lines t)
+   (inhibit-startup-screen t)
+   (kill-do-not-save-duplicates t)
+   (kill-region-dwim 'emacs-word)
+   (make-backup-files nil)
+   (max-redisplay-ticks 1000000)
+   (mouse-autoselect-window t)
+   (native-comp-async-on-battery-power nil)
+   (native-comp-async-report-warnings-errors 'silent)
+   (read-extended-command-predicate #'command-completion-default-include-p)
+   (read-process-output-max 1048576)
+   (redisplay-skip-fontification-on-input t)
+   (register-use-preview nil)
+   (repeat-mode t)
+   (require-final-newline t)
+   (ring-bell-function #'ignore)
+   (scroll-conservatively 101)
+   (show-paren-context-when-offscreen t)
+   (suggest-key-bindings nil)
+   (tab-always-indent 'complete)
+   (tooltip-delay 0.1)
+   (use-dialog-box nil)
+   (use-short-answers t)
+   (vc-follow-symlinks nil)
+   (view-read-only t)
+   (warning-minimum-level :emergency)
+   (mouse-wheel-scroll-amount '(1))
+   (trusted-content (list (locate-user-emacs-file "lisp/lina/")
+                          (locate-user-emacs-file "user-lisp/")))
+   (mode-line-buffer-identification
+    `(:propertize (:eval (if-let* ((bfn (buffer-file-name)))
+                             (abbreviate-file-name bfn)
+                           "%12b"))
+	          face mode-line-buffer-id
+	          help-echo "Buffer name
+mouse-1: Previous buffer
+mouse-3: Next buffer"
+	          mouse-face mode-line-highlight
+	          local-map ,mode-line-buffer-identification-keymap))
+   (mode-line-modes
+    `((compilation-in-progress
+       ,(propertize "[Compiling] "
+	            'help-echo "Compiling; mouse-2: Goto Buffer"
+                    'mouse-face 'mode-line-highlight
+                    'local-map (make-mode-line-mouse-map
+                                'mouse-2
+			        #'compilation-goto-in-progress-buffer)))
+      ,(propertize "%[" 'help-echo #1="Recursive edit, type C-M-c to get out")
+      "("
+      (:propertize (""
+                    (:eval
+                     (cond
+                      ((listp mode-name)
+                       (format-mode-line (cons (symbol-name major-mode)
+                                               (cdr mode-name))))
+                      (t
+                       (symbol-name major-mode)))))
+                   help-echo "Major mode
+mouse-1: Display major mode menu
+mouse-2: Show help for major mode
+mouse-3: Toggle minor modes"
+                   mouse-face mode-line-highlight
+                   local-map ,mode-line-major-mode-keymap)
+      ("" mode-line-process)
+      ,(propertize "%n" 'help-echo "mouse-2: Remove narrowing from buffer"
+		   'mouse-face 'mode-line-highlight
+		   'local-map (make-mode-line-mouse-map
+			       'mouse-2 #'mode-line-widen))
+      ("" mode-line-minor-modes)
+      ")"
+      ,(propertize "%]" 'help-echo #1#)
+      " "))
+   (mode-line-percent-position nil)
+   (mode-line-format
+    '("%e"
+      mode-line-front-space
+      mode-line-mule-info
+      mode-line-client
+      mode-line-modified
+      mode-line-remote
+      mode-line-window-dedicated
+      " "
+      mode-line-buffer-identification
+      "  "
+      mode-line-position
+      (project-mode-line project-mode-line-format)
+      " "
+      mode-line-modes
+      mode-line-misc-info))
+   (frame-title-format
+    '("(%F) "
+      (buffer-file-name (:eval (abbreviate-file-name default-directory)))
+      "%b - Emacs@" system-name))
+   (text-quoting-style 'grave))
+  :hook
+  (after-init-hook . (lambda ()
+                       (remove-hook 'completion-at-point-functions
+                                    #'tags-completion-at-point-function)))
+  (after-save-hook . font-lock-update)
+  :bind
+  (("M-u" . ignore)
+   ("M-;" . comment-line)
+   ("C-l" . redraw-display)
+   ("C-x C-g" . ignore)
+   ("M-<up>" . backward-up-list)
+   ("M-<down>" . down-list)
+   ("M-<left>" . backward-sexp)
+   ("M-<right>" . forward-sexp)
+   ("C-k" . kill-whole-line)
+   ("C-n" . goto-line)
+   ("C-z" . undo)
+   ("C-S-z" . undo-redo)
+   ("M-z" . undo-redo)
+   ("M-," . pop-to-mark-command)
+   ("C-," . pop-global-mark)
+   ("C-x x" . revert-buffer-quick)
+   ("C-x C-x" . revert-buffer-quick)))
 
 ;;;; core hooks
+(use-package exec-path-from-shell
+  :custom ((exec-path-from-shell-variables '("PATH"
+                                             "MANPATH"
+                                             "INFOPATH"
+                                             "SSH_AUTH_SOCK")))
+  :init
+  (let ((zsh (executable-find "zsh")))
+    (if zsh
+        (setopt exec-path-from-shell-shell-name zsh
+                exec-path-from-shell-arguments nil)))
+  :hook (emacs-startup-hook . exec-path-from-shell-initialize))
+
 (use-package server
   :ensure nil
   :autoload server-running-p
@@ -119,11 +202,21 @@
 
 ;;;; theme
 (use-package modus-themes
-  :no-require t
-  :init
-  (require-theme 'modus-themes)
-  :hook (window-setup-hook . (lambda ()
-                               (load-theme 'modus-operandi t))))
+  :ensure t
+  :pin gnu
+  :custom ((modus-operandi-palette-overrides `((border-mode-line-active nil)
+                                               (border-mode-line-inactive nil))))
+  :autoload modus-themes-load-theme
+  :config
+  (defun lina-modus-operandi-hook ()
+    (modus-themes-with-colors
+      (custom-set-faces
+       ;; `(font-lock-warning-face ((,c ( :foreground "#fffff"
+       ;;                                 :background ,warning))))
+       )))
+  :hook ((modus-themes-after-load-theme-hook . lina-modus-operandi-hook)
+         (window-setup-hook . (lambda ()
+                                (modus-themes-load-theme 'modus-operandi)))))
 
 ;;;; fonts
 (set-frame-font "Iosevka-10.5" nil t)
@@ -249,19 +342,26 @@
 
 ;;;; buffer completion
 
+(use-package dabbrev
+  :ensure nil
+  :autoload (dabbrev-capf)
+  :init
+  (remove-hook 'completion-at-point-functions #'dabbrev-capf)
+  (add-hook 'completion-at-point-functions #'dabbrev-capf 0))
+
 (use-package cape
   :ensure t
   :pin gnu
   :defines emacs-lisp-mode autoconf-mode
   :custom
   (cape-elisp-symbol-wrapper nil)
-  :init
-  (setq-mode-local emacs-lisp-mode
-                   completion-at-point-functions '(cape-elisp-symbol t))
-  (setq-mode-local autoconf-mode
-                   completion-at-point-functions '(cape-dabbrev t))
+  :autoload (cape-capf-interactive)
+  :config
+  (defalias 'dabbrev-capf-interactive (cape-capf-interactive #'dabbrev-capf)
+    "Interactively complete word dynamically. See `dabbrev-capf'.")
   :bind
-  ("M-/" . cape-dabbrev))
+  ("M-/" . dabbrev-capf-interactive)
+  ("M-f" . cape-file))
 
 (use-package corfu
   :defines corfu-map
@@ -283,12 +383,14 @@
 
 ;;; help
 
-(use-package customize
+(use-package cus-edit
   :ensure nil
   :bind
   (:map help-map
         ("g" . customize-group-other-window)
-        ("u" . customize-variable-other-window)))
+        ("u" . customize-variable-other-window))
+  (:map custom-field-keymap
+        ("<down-mouse-1>" . nil)))
 
 (use-package help
   :ensure nil
@@ -312,6 +414,10 @@
   (:map help-map
         ("s" . info-lookup-symbol)))
 
+(use-package man
+  :ensure nil
+  :custom (Man-notify-method 'thrifty))
+
 ;;; built-in minor modes
 
 ;;; built-in global minor modes
@@ -326,8 +432,9 @@
 (use-package eldoc
   :ensure nil
   :custom
-  (eldoc-minor-mode-string nil)
-  (eldoc-echo-area-use-multiline-p nil))
+  ((eldoc-minor-mode-string nil)
+   (eldoc-echo-area-use-multiline-p nil)
+   (eldoc-documentation-strategy #'eldoc-documentation-compose)))
 
 (use-package display-fill-column-indicator
   :ensure nil
@@ -349,35 +456,45 @@
   :custom
   (save-place-mode t))
 
-(use-package auto-revert
+(use-package autorevert
   :ensure nil
   :custom
   ((global-auto-revert-mode t)
    (auto-revert-mode-text "")))
 
+(use-package winner
+  :ensure nil
+  :custom (winner-mode t))
+
 ;;;; built-in local minor modes
 
 (use-package flymake
   :ensure nil
+  :functions flymake-eldoc-function
   :config
-  (unless (or (server-running-p)
-              (display-graphic-p))
-    (setq-default flymake-show-diagnostics-at-end-of-line 'short))
-  :hook ((sh-base-mode-hook emacs-lisp-mode-hook python-base-mode-hook) . flymake-mode)
+  (defun lina-flymake-hook ()
+    (when flymake-mode
+      (setq-local eldoc-documentation-functions
+                  (cons #'flymake-eldoc-function
+                        (delq #'flymake-eldoc-function
+                              eldoc-documentation-functions)))))
+  :hook ((flymake-mode-hook . lina-flymake-hook)
+         ((sh-base-mode-hook python-base-mode-hook) . flymake-mode))
   :bind
   (:map flymake-mode-map
-        ("C-c m" . flymake-show-buffer-diagnostics)))
+        ("C-x m" . flymake-show-buffer-diagnostics)))
 
 (use-package display-line-numbers
   :ensure nil
   :custom
   ((display-line-numbers-grow-only t)
-   (display-line-numbers-width 3))
-  :hook (prog-mode-hook . display-line-numbers-mode))
+   (display-line-numbers-width 4))
+  :hook ((prog-mode-hook markdown-ts-mode-hook) . display-line-numbers-mode))
 
 (use-package goto-addr
   :ensure nil
-  :hook (prog-mode-hook . goto-address-prog-mode))
+  :hook ((prog-mode-hook . goto-address-prog-mode)
+         (text-mode-hook . goto-address-mode)))
 
 ;;; built-in commands
 
@@ -411,7 +528,8 @@
   :ensure nil
   :bind
   ("C-x F" . find-function-other-window)
-  ("C-x L" . find-library-other-window))
+  ("C-x L" . find-library-other-window)
+  ("C-h K" . find-function-on-key))
 
 (use-package ispell
   :ensure nil
@@ -459,7 +577,11 @@
 (use-package vc-hooks
   :ensure nil
   :hook (after-init-hook . (lambda ()
-                             (setq-default vc-handled-backends '(Git)))))
+                             (setopt vc-handled-backends '(Git)))))
+
+(use-package auth-source
+  :ensure nil
+  :custom (auth-sources '("~/.authinfo")))
 
 ;;;; shells
 
@@ -539,16 +661,22 @@
   (magit-display-buffer-function #'display-buffer)
   (magit-commit-show-diff nil)
   :config
-  (defun lina/vertico-preselect-around (func)
+  (defun lina/vertico-preselect-around (func &rest args)
     (let ((vertico-preselect 'prompt))
-      (funcall func)))
+      (apply func args)))
   (advice-add #'magit-clone-read-args :around #'lina/vertico-preselect-around)
   (advice-add #'magit-branch-read-args :around #'lina/vertico-preselect-around)
   :bind
-  (:map ctl-x-map
-        ("g" . magit-dispatch))
+  ("C-x g" . magit-dispatch)
   (:map mode-specific-map
         ("g" . magit-file-dispatch)))
+
+(use-package git-commit
+  :functions git-commit-collapse-diff
+  :config
+  (setq git-commit-setup-hook (delq #'git-commit-collapse-diff
+                                    git-commit-setup-hook))
+  :hook (git-commit-mode-hook . display-fill-column-indicator-mode))
 
 (use-package transient
   :functions transient-bind-q-to-quit
@@ -572,14 +700,30 @@
   :ensure t)
 
 (use-package ghostel
+  :functions ghostel-module-compile@no-colour
+  :defines ghostel-semi-char-mode-map
   :custom
-  ((ghostel-shell (or (executable-find "zsh")
-                      "/bin/sh"))
+  ((ghostel-shell (or (executable-find "zsh") "/bin/bash"))
    (ghostel-term "xterm-256color")
-   (ghostel-module-auto-install 'download))
+   (ghostel-module-auto-install nil)
+   (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "C-g"))
+   (ghostel-point-leave-input-mode nil)
+   (ghostel-readonly-fast-exit nil))
+  :config
+  (define-advice ghostel-module-compile (:around (func) no-colour)
+    (let ((compilation-environment (cons "NO_COLOR=true"
+                                         compilation-environment)))
+      (funcall func)))
+  (defun lina-ghostel-pre-spawn-hook ()
+    (when (fboundp 'with-editor--setup)
+      (let ((with-editor--envvar "EDITOR"))
+        (with-editor--setup))))
+  :hook (ghostel-pre-spawn-hook . lina-ghostel-pre-spawn-hook)
   :bind
   (:map ghostel-semi-char-mode-map
-        ("C-u" . ghostel--send-event)))
+        ("C-c C-u" . universal-argument))
+  (:map ghostel-readonly-mode-map
+        ("q" . ghostel-readonly-exit)))
 
 (use-package apheleia
   :defines apheleia-mode-alist python-mode
@@ -619,10 +763,6 @@
 
 ;;; third-party minor modes
 
-(use-package hungry-delete
-  :ensure t
-  :hook ((tex-mode-hook lisp-data-mode-hook) . hungry-delete-mode))
-
 (use-package gcmh
   :ensure t
   :delight gcmh-mode
@@ -660,9 +800,10 @@
   (defun lina/prog-mode-hook ()
     (if (fboundp 'delete-trailing-whitespace-mode)
         (delete-trailing-whitespace-mode t)
-      (add-hook 'after-save-hook #'delete-trailing-whitespace nil t)))
+      (add-hook 'before-save-hook #'delete-trailing-whitespace nil t)))
   :hook (prog-mode-hook . lina/prog-mode-hook)
   :bind (:map prog-mode-map
+              ("DEL" . backward-delete-char-untabify)
               ("C-," . xref-go-back)
               ("C-w" . lina/c-w-dwim)))
 
@@ -680,7 +821,8 @@
                            json-ts-mode
                            typescript-ts-mode
                            tsx-ts-mode
-                           python-ts-mode))
+                           python-ts-mode
+                           markdown-ts-mode))
   (treesit-font-lock-level 4))
 
 (use-package conf-mode
@@ -755,6 +897,20 @@
   (:map image-mode-map
         ([remap revert-buffer] . revert-buffer-quick)))
 
+(use-package wid-edit
+  :bind
+  (:map widget-keymap
+        ("SPC" . widget-button-press)
+        ("M-i" . widget-complete))
+  (:map widget-field-keymap
+        ("M-i" . widget-complete))
+  (:map widget-text-keymap
+        ("M-i" . widget-complete)))
+
+(use-package markdown-ts-mode
+  :ensure nil
+  :mode "\\.md\\'")
+
 ;;; third-party major modes
 
 (use-package nix-ts-mode
@@ -783,12 +939,17 @@ created by FUNC will inherit the caller’s environment.
 ;;; other files
 
 (load "lina-window")
-(load "lina-smartparens")
+;; (load "lina-smartparens")
+(load "lina-puni")
 (load "lina-elisp")
 (load "lina-llm")
 (load "lina-mail")
 (load "lina-eglot")
 (load "lina-org")
-;; (load "lina-puni")
+
+(use-package eval-expression-and-save
+  :load-path (lambda () user-lisp-directory)
+  :bind
+  ("M-:" . eval-expression-and-save))
 
 ;;; init.el ends here

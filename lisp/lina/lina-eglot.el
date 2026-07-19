@@ -4,7 +4,12 @@
         eglot-send-changes-idle-time 1
         eglot-server-programs
         '(((python-mode python-ts-mode) "ty" "server")
-          (haskell-mode "haskell-language-server-wrapper" "--lsp")))
+          (haskell-mode "haskell-language-server-wrapper" "--lsp")
+          ((js-json-mode json-ts-mode)
+           "npx"
+           "--package=@t1ckbase/vscode-langservers-extracted"
+           "vscode-json-language-server"
+           "--stdio")))
 (defun lina/eglot-hook ()
   (eglot-inlay-hints-mode (if (derived-mode-p 'python-base-mode)
                               -1

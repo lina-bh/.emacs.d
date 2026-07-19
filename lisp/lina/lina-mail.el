@@ -30,7 +30,8 @@
   (mu4e-modeline-mode nil)
   (mu4e-confirm-quit nil)
   :bind
-  (("C-x m" . mu4e-jump-to-favorite)
+  (
+   ;; ("C-x m" . mu4e-jump-to-favorite)
    (:map mu4e-headers-mode-map
          ("q" . mu4e-quit))
    (:map mu4e-compose-minor-mode-map

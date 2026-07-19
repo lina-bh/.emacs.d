@@ -1,9 +1,9 @@
-;;; push-point-to-register.el --- push-point-to-register  -*- lexical-binding: t; -*-
+;;; kill-unfilled-region.el --- kill-unfilled-region  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Lina Bhaile <emacs-devel@linabee.uk>
 
 ;; Author: Lina Bhaile <emacs-devel@linabee.uk>
-;; Package-Requires: ((cl-lib "1.0"))
+;; Package-Requires: ((emacs "31.0"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,21 +24,16 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl-lib))
-
 ;;;###autoload
-(defun push-point-to-register ()
-  "Store point in an unused register from a-z."
-  (interactive)
-  (cl-labels ((f (c)
-                (if (assoc c register-alist)
-                    (if (>= c ?z)
-                        (error "Ran out of keys")
-                      (f (+ c 1)))
-                  (point-to-register c)
-                  c)))
-    (message "%c" (f ?a))))
+(defun kill-unfilled-region (beg end)
+  (interactive "r")
+  (let ((buf (current-buffer)))
+    (with-temp-buffer
+      (insert-buffer-substring-no-properties buf beg end)
+      (unfill-paragraph nil (point-min) (point-max))
+      (kill-ring-save (point-min) (point-max))))
+  (deactivate-mark)
+  (message "Killed %S" (car kill-ring)))
 
-(provide 'push-point-to-register)
-;;; push-point-to-register.el ends here
+(provide 'kill-unfilled-region)
+;;; kill-unfilled-region.el ends here

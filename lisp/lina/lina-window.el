@@ -15,22 +15,17 @@
 
 (setopt display-buffer-alist
         `(
-          ((category . xref-jump)
-           ,(car display-buffer-base-action))
+          ((or (category . xref-jump)
+               (category . comint)
+               (derived-mode . Info-mode)
+               "\\*ielm")
+           .
+           ,display-buffer-base-action)
           ("\\*Tetris\\*"
            display-buffer-full-frame)
           ((or
-            (derived-mode . apropos-mode)
-            (derived-mode . Info-mode)
-            "\\*Man")
-           display-buffer-reuse-mode-window
-           (mode . (Man-mode
-                    Info-mode
-                    apropos-mode)))
-          ("COMMIT_EDITMSG"
-           display-buffer-below-selected
-           (dedicated . t))
-          ((derived-mode . magit-mode)
+            "COMMIT_EDITMSG"
+            (derived-mode . magit-mode))
            display-buffer-reuse-mode-window
            (mode . magit-mode))
           ("\\*Completions"
@@ -40,44 +35,27 @@
            display-buffer-at-bottom)
           ("\\*Customize"
            display-buffer-reuse-mode-window)
-          ("\\*Pp"
-           (display-buffer-reuse-window
-            display-buffer-below-selected)
-           (dedicated . t))
-          ((and (not "\\*Async Shell Command\\*")
-                (or (category . comint)
-                    (derived-mode . term-mode)
-                    (derived-mode . comint-mode)
-                    (derived-mode . ghostel-mode)
-                    ,(rx bos "*" (or
-                                  "Python"
-                                  (and (* nonl) "REPL")))
-                    ,(rx (or "eshell") "*" eos)))
-           ,(cons #'display-buffer-reuse-mode-window
-                  (car display-buffer-base-action))
-           (mode . (comint-mode
-                    eshell-mode
-                    ghostel-mode)))
           ((and (not (major-mode . grep-mode))
                 (or
                  (category . warning)
                  (derived-mode . flymake-diagnostics-buffer-mode)
                  (derived-mode . help-mode)
-                 (derived-mode . compilation-mode)
-                 ,(rx bos "*" (or
-                               "trace-output"
-                               "eldoc"
-                               "Warnings"
-                               "Compile-Log"
-                               "Checkdoc"))))
+                 ,(rx "*" (or
+                           "trace-output"
+                           "eldoc"
+                           "Warnings"
+                           "Compile-Log"
+                           "Checkdoc"
+                           "Pp"
+                           "compilation"
+                           "claude"))))
            display-buffer-in-side-window
-           (window-height . 12)
+           (window-height . 16)
+           (preserve-size . (nil . t))
            (slot . 0))))
 
 (bind-keys
+ ("C-x 1" . same-window-prefix)
  ("C-x 2" . split-window-below-and-select)
  ("C-x 3" . split-window-right-and-select)
- ("C-x 5" . make-frame-command)
- ("C-x q" . quit-window)
- ("C-x o" . other-window)
- ("C-x 4" . other-window-prefix))
+ ("C-x q" . quit-window))

@@ -1,9 +1,9 @@
-;;; push-point-to-register.el --- push-point-to-register  -*- lexical-binding: t; -*-
+;;; interprogram-copy-from-kill-ring.el --- interprogram-copy-from-kill-ring  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Lina Bhaile <emacs-devel@linabee.uk>
 
 ;; Author: Lina Bhaile <emacs-devel@linabee.uk>
-;; Package-Requires: ((cl-lib "1.0"))
+;; Package-Requires: ((emacs "28.1"))
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -24,21 +24,14 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl-lib))
-
 ;;;###autoload
-(defun push-point-to-register ()
-  "Store point in an unused register from a-z."
+(defun interprogram-copy-from-kill-ring ()
+  "Select a stretch of previously killed text and load it into the clipboard."
   (interactive)
-  (cl-labels ((f (c)
-                (if (assoc c register-alist)
-                    (if (>= c ?z)
-                        (error "Ran out of keys")
-                      (f (+ c 1)))
-                  (point-to-register c)
-                  c)))
-    (message "%c" (f ?a))))
+  (unless interprogram-cut-function
+    (user-error "%S is nil" 'interprogram-cut-function))
+  (funcall interprogram-cut-function
+           (read-from-kill-ring "Copy from kill-ring: ")))
 
-(provide 'push-point-to-register)
-;;; push-point-to-register.el ends here
+(provide 'interprogram-copy-from-kill-ring)
+;;; interprogram-copy-from-kill-ring.el ends here

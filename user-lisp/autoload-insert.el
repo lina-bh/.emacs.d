@@ -1,4 +1,4 @@
-;;; print-gc-cons-threshold.el --- print-gc-cons-threshold  -*- lexical-binding: t; -*-
+;;; autoload-insert.el --- autoload-insert  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Lina Bhaile <emacs-devel@linabee.uk>
 
@@ -25,13 +25,22 @@
 ;;; Code:
 
 ;;;###autoload
-(defun print-gc-cons-threshold (&optional interactive)
-  "Human-readable value of `gc-cons-threshold'."
-  (interactive (list t))
-  (let ((human (file-size-human-readable gc-cons-threshold)))
-    (when interactive
-      (message "%s" human))
-    human))
+(defun insert-autoload (func)
+  "Insert a call to `autoload' for FUNC.
+Errors if FUNC is itself an autoload.
+When prefixed, insert the docstring, interactive and macro specs."
+  (interactive "aInsert autoload for function: ")
+  (when (autoloadp func)
+    (error "%S is not loaded" func))
+  (prin1 (append `(autoload ',func)
+                 (list
+                  (file-name-base (symbol-file func 'defun)))
+                 (when current-prefix-arg
+                   (list
+                    (substring-no-properties (documentation func))
+                    (commandp func)
+                    (and (macrop func) ''macro))))
+         (current-buffer)))
 
-(provide 'print-gc-cons-threshold)
-;;; print-gc-cons-threshold.el ends here
+(provide 'autoload-insert)
+;;; autoload-insert.el ends here
