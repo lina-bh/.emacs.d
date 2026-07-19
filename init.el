@@ -183,6 +183,7 @@ mouse-3: Toggle minor modes"
 
 ;;;; core hooks
 (use-package exec-path-from-shell
+  :ensure t
   :custom ((exec-path-from-shell-variables '("PATH"
                                              "MANPATH"
                                              "INFOPATH"
