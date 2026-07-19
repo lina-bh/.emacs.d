@@ -172,6 +172,7 @@ mouse-3: Toggle minor modes"
    ("M-<right>" . forward-sexp)
    ("C-k" . kill-whole-line)
    ("C-n" . goto-line)
+   ("C-t" . transpose-lines)
    ("C-z" . undo)
    ("C-S-z" . undo-redo)
    ("M-z" . undo-redo)
