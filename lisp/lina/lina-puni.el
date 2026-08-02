@@ -39,10 +39,12 @@
 (use-package puni
   :ensure t
   :defines (puni-mode-map)
-  :functions (puni-kill-active-region
-              puni-kill-line
-              puni-backward-delete-char
-              puni-delete-region)
+  :autoload (puni-up-list
+             puni-soft-delete-by-move)
+  :commands (puni-kill-active-region
+             puni-kill-line
+             puni-backward-delete-char
+             puni-delete-region)
   :config
   (defun lina/puni-c-w-dwim ()
     (interactive)
@@ -52,8 +54,11 @@
   (defun lina/puni-kill-whole-line ()
     (interactive)
     (let ((kill-whole-line t))
-      (move-beginning-of-line nil)
-      (puni-kill-line)))
+      (back-to-indentation)
+      (puni-kill-line)
+      (puni-soft-delete-by-move (lambda ()
+                                  (forward-line -1)
+                                  (end-of-line)))))
   (defun lina/puni-hungry-backward-delete-char ()
     "Hungrily delete backwards keeping expressions balanced.
 If prefixed, or the region is active, or at the beginning of the line,
@@ -66,7 +71,11 @@ fall back to `puni-backward-delete-char' (which see)."
                                  (beginning-of-line)
                                  (point)))))
         (call-interactively #'puni-backward-delete-char)
-      (puni-delete-region (1- (line-beginning-position)) (point))))
+      (puni-soft-delete-by-move (lambda ()
+                                  (search-backward-regexp "[^[:space:]]")))))
+  (defun lina-puni-up-list (&optional backward)
+    (interactive "P")
+    (puni-up-list backward))
   :delight " Puni"
   :hook
   (lisp-data-mode-hook . puni-mode)
@@ -84,7 +93,7 @@ fall back to `puni-backward-delete-char' (which see)."
         ("C-c ," . puni-barf-forward)
         ("C-c s" . puni-splice)
         ("M-r" . puni-raise)
-        ("M-<up>" . puni-backward-sexp-or-up-list)
+        ("M-<up>" . nil)
         ("M-<left>" . puni-backward-sexp)
         ("M-<right>" . puni-forward-sexp)
         ("M-9" . puni-wrap-round))

@@ -1,4 +1,4 @@
-;;; autoload-cookie.el --- autoload-cookie  -*- lexical-binding: t; -*-
+;;; insert-autoload-for-defun.el --- insert-autoload-for-defun  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2026 Lina Bhaile <emacs-devel@linabee.uk>
 
@@ -24,12 +24,15 @@
 ;;; Code:
 
 ;;;###autoload
-(defun autoload-cookie ()
+(defun insert-autoload-for-defun ()
   "Insert an autoload cookie above the current defun."
   (interactive)
   (save-excursion
     (beginning-of-defun)
     (insert ";;;###autoload\n")))
 
-(provide 'autoload-cookie)
-;;; autoload-cookie.el ends here
+;;;###autoload
+(defalias 'autoload-cookie #'insert-autoload-for-defun)
+
+(provide 'insert-autoload-for-defun)
+;;; insert-autoload-for-defun.el ends here

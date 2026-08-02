@@ -9,3 +9,8 @@
 ;; (autoload 'tool-bar-mode "tool-bar.el")
 (when (fboundp 'tool-bar-mode)
   (tool-bar-mode -1))
+(when (fboundp 'scroll-bar-mode)
+  (scroll-bar-mode -1))
+;; Local Variables:
+;; no-byte-compile: t
+;; End:

@@ -75,8 +75,8 @@ Assume the following:
   :hook (agent-shell-mode-hook . lina-agent-shell-hook))
 
 (use-package claude-code
-  :autoload (claude-code-send-escape
-             lina-claude-notify
+  :autoload (lina-claude-notify)
+  :commands (claude-code-send-escape
              lina-claude-C-z)
   :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
   :custom ((claude-code-terminal-backend 'ghostel)
@@ -86,7 +86,7 @@ Assume the following:
   :config
   (defun lina-claude-C-z ()
     (interactive)
-    (ghostel-send-string (kbd "^_")))
+    (ghostel-send-string (kbd "C-_")))
   (defun lina-claude-term-hook ()
     (if (and (eq claude-code-terminal-backend 'ghostel)
              (eq major-mode 'ghostel-mode)
@@ -96,15 +96,17 @@ Assume the following:
           (keymap-local-set "C-z" #'lina-claude-C-z))
       (error "Wrong buffer for hook: %S %S" (buffer-name) major-mode)))
   (setopt claude-code-notification-function
-          (eval `(defun lina-claude-notify (title message)
-                   ,@(when (featurep 'dbusbind)
-                       '((notifications-notify :title title
-                                               :body message)))
-                   (message "%s: %s" title message))
+          (eval `(defun lina-claude-notify (_title message)
+                   (let ((bn (buffer-name)))
+                     ,@(when (featurep 'dbusbind)
+                         '((notifications-notify :title bn
+                                                 :body message)))
+                     (message "%s: %s" bn message)))
                 t))
   :hook (claude-code-start-hook . lina-claude-term-hook))
 
 (use-package monet
+  :disabled t
   :vc (:url "https://github.com/stevemolitor/monet" :rev :newest)
   :custom ((monet-diff-tool nil))
   :hook (claude-code-process-environment-functions

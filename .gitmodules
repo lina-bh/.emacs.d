@@ -1,3 +1,9 @@
 [submodule "lisp/keepassxc.el"]
 	path = lisp/keepassxc.el
 	url = git@github.com:lina-bh/keepassxc.el
+[submodule "user-lisp/jsonschema-treesit"]
+	path = user-lisp/jsonschema-treesit
+	url = git@github.com:lina-bh/jsonschema-treesit.git
+[submodule "user-lisp/sly"]
+	path = user-lisp/sly
+	url = https://github.com/joaotavora/sly.git

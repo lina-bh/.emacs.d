@@ -26,23 +26,24 @@
 (eval-when-compile
   (require 'cl-lib))
 
+(defsubst derived-modes?-recursive-walk (mode)
+  )
+
 ;;;###autoload
 (defun derived-modes? (mode &optional interactive)
   "What fucking modes does this major mode inherit?"
   (interactive
    (list major-mode t))
   (let (parents)
-    (if (fboundp 'derived-mode-all-parents)
-        (setq parents (reverse (derived-mode-all-parents mode)))
-      (cl-labels ((f (modes)
-                    (if-let* ((mode (car modes))
-                              (parent (get mode 'derived-mode-parent)))
-                        (f (cons parent modes))
-                      modes)))
-        (setq parents (f (list major-mode)))))
-    (when interactive
-      (message "%s" parents))
-    parents))
+    (prog1
+        (setq parents (cl-labels ((f (modes)
+                                    (if-let* ((mode (car modes))
+                                              (parent (get mode 'derived-mode-parent)))
+                                        (f (cons parent modes))
+                                      modes)))
+                        (f (list mode))))
+      (when interactive
+        (message "%s" parents)))))
 
 (provide 'derived-modes)
 ;;; derived-modes.el ends here

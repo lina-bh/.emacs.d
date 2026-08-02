@@ -26,3 +26,4 @@ forge-database.sqlite
 /lisp/marginalia
 /eca/
 network-security.data
+/json-schema-mode/

@@ -1,6 +1,7 @@
 ;; -*- lexical-binding: t; -*-
 (eval-when-compile
-  (require 'autoinsert))
+  (require 'autoinsert)
+  (require 'cl-lib))
 
 (autoload 'comint-skip-input "comint" "Skip all pending input, from last stuff output by interpreter to point.
 This means mark it as if it had been sent as input, without
@@ -109,8 +110,10 @@ disabled.
   (defun lina-lisp-data-hook ()
     "Hook for `lisp-data-mode' and descendant modes i.e `emacs-lisp-mode'."
     (setq-local completion-at-point-functions
-                `(,@(and (fboundp 'cape-elisp-symbol)
-                         (list #'cape-elisp-symbol))
+                `(,@(and (fboundp 'cape-capf-super)
+                         (fboundp 'cape-elisp-symbol)
+                         (list (cape-capf-super #'elisp-completion-at-point
+                                                #'cape-elisp-symbol)))
                   elisp-completion-at-point
                   ,@(default-value 'completion-at-point-functions)
                   t)))
@@ -151,7 +154,19 @@ disabled.
 (use-package aggressive-indent
   :ensure t
   :pin gnu
-  :hook (lisp-data-mode-hook . aggressive-indent-mode)
+  :custom
+  ((aggressive-indent-dont-indent-if
+    `((and (memq major-mode '(c-mode c-ts-mode))
+           (null (string-match-p ,(rx
+                                   (or
+                                    (any ";{}")
+                                    (seq word-boundary
+                                         (or "if" "for" "while")
+                                         word-boundary))
+                                   )
+                                 (thing-at-point 'line)))))))
+  :hook
+  ((c-mode-hook lisp-data-mode-hook) . aggressive-indent-mode)
   :delight " aggro")
 
 (provide 'lina-elisp)

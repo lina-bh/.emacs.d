@@ -15,10 +15,15 @@
 
 (setopt display-buffer-alist
         `(
-          ((or (category . xref-jump)
-               (category . comint)
+          ((category . xref-jump)
+           (display-buffer-reuse-window
+            display-buffer-same-window))
+          ((or (category . comint)
                (derived-mode . Info-mode)
-               "\\*ielm")
+               "\\*ielm"
+               "\\*eww"
+               ;; "\\*gud"
+               )
            .
            ,display-buffer-base-action)
           ("\\*Tetris\\*"
@@ -35,24 +40,38 @@
            display-buffer-at-bottom)
           ("\\*Customize"
            display-buffer-reuse-mode-window)
+          ((or (derived-mode . help-mode)
+               "\\*sly-description")
+           display-buffer-in-side-window
+           (window-height . ,(/ 1.0 3))
+           (preserve-size . (nil . t))
+           (no-delete-other-windows . t)
+           (slot . 1))
           ((and (not (major-mode . grep-mode))
                 (or
                  (category . warning)
                  (derived-mode . flymake-diagnostics-buffer-mode)
-                 (derived-mode . help-mode)
-                 ,(rx "*" (or
-                           "trace-output"
-                           "eldoc"
-                           "Warnings"
-                           "Compile-Log"
-                           "Checkdoc"
-                           "Pp"
-                           "compilation"
-                           "claude"))))
+                 (derived-mode . flymake-project-diagnostics-mode)
+                 (derived-mode . gdb-inferior-io-mode)
+                 ,@(let ((regexps (list)))
+                     (dolist (prefix '("trace-output"
+                                       "eldoc"
+                                       "Warnings"
+                                       "Compile-Log"
+                                       "Checkdoc"
+                                       "Pp"
+                                       "compilation"
+                                       "claude"
+                                       "Backtrace"
+                                       "sly-macroexpansion")
+                                     regexps)
+                       (push (concat "\\*" prefix) regexps)))))
            display-buffer-in-side-window
-           (window-height . 16)
+           (window-height . ,(/ 1.0 3))
            (preserve-size . (nil . t))
-           (slot . 0))))
+           (slot . 0)
+           (window-parameters
+            (no-delete-other-windows . t)))))
 
 (bind-keys
  ("C-x 1" . same-window-prefix)

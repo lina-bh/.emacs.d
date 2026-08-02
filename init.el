@@ -1,6 +1,5 @@
 ;; -*- lexical-binding: t; -*-
-(eval-when-compile
-  (require 'cl-lib))
+(require 'cl-lib)
 
 (autoload 'setq-mode-local "mode-local")
 
@@ -45,8 +44,11 @@
 (use-package emacs
   :ensure nil
   :custom
-  ((directory-abbrev-alist
-    (list (cons (file-name-concat "/var/home/" (user-login-name)) "~")))
+  ((auto-insert-query nil)
+   (directory-abbrev-alist
+    (let ((uln (user-login-name)))
+      (list (cons (file-name-concat "/var/home/" (user-login-name)) "~")
+            (cons (file-name-concat "/home/" (user-login-name)) "~"))))
    (auto-save-default nil)
    (backward-delete-char-untabify-method 'hungry)
    (bidi-inhibit-bpa t)
@@ -91,40 +93,32 @@
    (mouse-wheel-scroll-amount '(1))
    (trusted-content (list (locate-user-emacs-file "lisp/lina/")
                           (locate-user-emacs-file "user-lisp/")))
-   (mode-line-buffer-identification
-    `(:propertize (:eval (if-let* ((bfn (buffer-file-name)))
-                             (abbreviate-file-name bfn)
-                           "%12b"))
-	          face mode-line-buffer-id
-	          help-echo "Buffer name
-mouse-1: Previous buffer
-mouse-3: Next buffer"
-	          mouse-face mode-line-highlight
-	          local-map ,mode-line-buffer-identification-keymap))
    (mode-line-modes
     `((compilation-in-progress
        ,(propertize "[Compiling] "
-	            'help-echo "Compiling; mouse-2: Goto Buffer"
+	            'help-echo "Compiling; mouse-1: Goto Buffer"
                     'mouse-face 'mode-line-highlight
                     'local-map (make-mode-line-mouse-map
-                                'mouse-2
+                                'mouse-1
 			        #'compilation-goto-in-progress-buffer)))
       ,(propertize "%[" 'help-echo #1="Recursive edit, type C-M-c to get out")
       "("
       (:propertize (""
                     (:eval
-                     (cond
-                      ((listp mode-name)
-                       (format-mode-line (cons (symbol-name major-mode)
-                                               (cdr mode-name))))
-                      (t
-                       (symbol-name major-mode)))))
+                     (if (listp mode-name)
+                         (format-mode-line (cons (symbol-name major-mode)
+                                                 (cdr mode-name)))
+                       (if (memq major-mode '(c-mode c-ts-mode))
+                           mode-name
+                         (symbol-name major-mode)))))
                    help-echo "Major mode
 mouse-1: Display major mode menu
 mouse-2: Show help for major mode
 mouse-3: Toggle minor modes"
                    mouse-face mode-line-highlight
-                   local-map ,mode-line-major-mode-keymap)
+                   local-map ,(make-mode-line-mouse-map
+                               'mouse-1
+                               #'derived-modes?))
       ("" mode-line-process)
       ,(propertize "%n" 'help-echo "mouse-2: Remove narrowing from buffer"
 		   'mouse-face 'mode-line-highlight
@@ -152,9 +146,16 @@ mouse-3: Toggle minor modes"
       mode-line-modes
       mode-line-misc-info))
    (frame-title-format
-    '("(%F) "
-      (buffer-file-name (:eval (abbreviate-file-name default-directory)))
-      "%b - Emacs@" system-name))
+    `("(%F) "
+      ("" (:eval (let* ((current (current-buffer))
+                        (buffer (if (string-equal (buffer-name current) "*Help*")
+                                    (window-buffer (previous-window))
+                                  nil))
+                        (bfn (buffer-file-name buffer)))
+                   (if bfn
+                       (abbreviate-file-name bfn)
+                     (buffer-name)))))
+      " - Emacs@" ,system-name "<" ,(number-to-string (emacs-pid)) ">"))
    (text-quoting-style 'grave))
   :hook
   (after-init-hook . (lambda ()
@@ -170,16 +171,19 @@ mouse-3: Toggle minor modes"
    ("M-<down>" . down-list)
    ("M-<left>" . backward-sexp)
    ("M-<right>" . forward-sexp)
+   ("M-r" . replace-regexp)
    ("C-k" . kill-whole-line)
    ("C-n" . goto-line)
    ("C-t" . transpose-lines)
    ("C-z" . undo)
    ("C-S-z" . undo-redo)
    ("M-z" . undo-redo)
-   ("M-," . pop-to-mark-command)
-   ("C-," . pop-global-mark)
+   ("C-," . pop-to-mark-command)
    ("C-x x" . revert-buffer-quick)
-   ("C-x C-x" . revert-buffer-quick)))
+   ("C-x C-x" . revert-buffer-quick)
+   (:map visual-line-mode-map
+         ([remap move-end-of-line] . nil)
+         ([remap move-beginning-of-line] . nil))))
 
 ;;;; core hooks
 (use-package exec-path-from-shell
@@ -204,10 +208,16 @@ mouse-3: Toggle minor modes"
 
 ;;;; theme
 (use-package modus-themes
+  :functions (modus-themes--with-colors-get-palette
+              modus-themes-get-current-theme)
   :ensure t
   :pin gnu
-  :custom ((modus-operandi-palette-overrides `((border-mode-line-active nil)
-                                               (border-mode-line-inactive nil))))
+  :custom ((modus-operandi-palette-overrides
+            `(
+              ;; (border-mode-line-active nil)
+              ;; (border-mode-line-inactive nil)
+              )
+            ))
   :autoload modus-themes-load-theme
   :config
   (defun lina-modus-operandi-hook ()
@@ -318,51 +328,50 @@ mouse-3: Toggle minor modes"
          ("C-<return>" . embark-export))))
 
 (use-package consult
-  :defines Info-mode-map
   :ensure t
-  :autoload consult-ripgrep consult-grep
-  :custom
-  (consult-async-split-style nil)
-  (consult-preview-key nil)
-  (completion-in-region-function #'consult-completion-in-region)
-  (xref-show-xrefs-function #'consult-xref)
+  :commands (consult-ripgrep consult-grep)
+  :custom ((consult-async-split-style nil)
+           (consult-preview-key nil)
+           (completion-in-region-function #'consult-completion-in-region)
+           (xref-show-xrefs-function #'consult-xref))
   :init
   (unless (package-installed-p 'embark-consult)
     (package-install 'embark-consult))
+  (with-eval-after-load 'info
+    (defvar Info-mode-map)
+    (bind-key "s" #'consult-info Info-mode-map))
+  (unless (fboundp 'consult-compile-error)
+    (autoload 'consult-compile-error "consult-compile" nil t))
   :bind
   ("M-g" . consult-imenu)
-  ("C-x b" . consult-buffer)
-  ("C-x r" . consult-register-store)
-  ("C-x j" . consult-register-load)
   ("C-c b" . consult-bookmark)
-  ("C-x p g" . consult-ripgrep)
-  ("C-x p f" . consult-find)
+  ("C-c `" . consult-compile-error)
+  ("M-s o" . consult-line)
+  (:map ctl-x-map
+        ("b" . consult-buffer)
+        ("r" . consult-register-store)
+        ("j" . consult-register-load))
+  (:map project-prefix-map
+        ("f" . consult-find)
+        ("g" . consult-grep)
+        ("r" . consult-ripgrep))
   (:map help-map
-        ("i" . consult-info))
-  (:package info :map Info-mode-map
-            ("s" . consult-info)))
+        ("i" . consult-info)))
 
 ;;;; buffer completion
-
-(use-package dabbrev
-  :ensure nil
-  :autoload (dabbrev-capf)
-  :init
-  (remove-hook 'completion-at-point-functions #'dabbrev-capf)
-  (add-hook 'completion-at-point-functions #'dabbrev-capf 0))
 
 (use-package cape
   :ensure t
   :pin gnu
-  :defines emacs-lisp-mode autoconf-mode
-  :custom
-  (cape-elisp-symbol-wrapper nil)
-  :autoload (cape-capf-interactive)
-  :config
-  (defalias 'dabbrev-capf-interactive (cape-capf-interactive #'dabbrev-capf)
-    "Interactively complete word dynamically. See `dabbrev-capf'.")
+  :custom (cape-elisp-symbol-wrapper nil)
+  :autoload (cape-capf-interactive
+             cape-capf-super)
+  :commands (cape-elisp-symbol)
+  :init
+  (add-hook 'completion-at-point-functions #'cape-dabbrev 0)
+  (add-hook 'completion-at-point-functions #'cape-file -10)
   :bind
-  ("M-/" . dabbrev-capf-interactive)
+  ("M-/" . cape-dabbrev)
   ("M-f" . cape-file))
 
 (use-package corfu
@@ -375,7 +384,7 @@ mouse-3: Toggle minor modes"
   (corfu-quit-at-boundary t)
   (corfu-quit-no-match nil)
   (corfu-preselect 'first)
-  (global-corfu-minibuffer nil)
+  (global-corfu-minibuffer t)
   (global-corfu-mode t)
   (global-corfu-modes '((not comint-mode eshell-mode) t))
   :bind (:map corfu-map
@@ -387,6 +396,7 @@ mouse-3: Toggle minor modes"
 
 (use-package cus-edit
   :ensure nil
+  :custom ((custom-unlispify-tag-names nil))
   :bind
   (:map help-map
         ("g" . customize-group-other-window)
@@ -504,9 +514,19 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :custom
   ((project-switch-commands #'project-dired))
-  :bind ((:map project-prefix-map
+  :config
+  (fset 'project-prefix-map project-prefix-map)
+  (defun lina-project-save-buffers ()
+    (interactive)
+    (project-save-some-buffers t))
+  :bind (("C-p" . project-prefix-map)
+         (:map project-prefix-map
                ("d" . project-dired)
-               ("s" . project-eshell))))
+               ("s" . project-eshell)
+               ("C-f" . project-or-external-find-file)
+               ("C-s" . lina-project-save-buffers))
+         (:map mode-specific-map
+               ("C-c" . project-recompile))))
 
 (use-package xref
   :ensure nil
@@ -556,6 +576,10 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :bind ("M-s h" . highlight-symbol-at-point))
 
+(use-package re-builder
+  :ensure nil
+  :custom ((reb-re-syntax 'read)))
+
 ;;; built-in externals
 
 (use-package tramp
@@ -573,13 +597,11 @@ mouse-3: Toggle minor modes"
 (use-package compile
   :ensure nil
   :custom
-  ((compilation-scroll-output 'first-error)
-   (compilation-ask-about-save nil)))
-
-(use-package vc-hooks
-  :ensure nil
-  :hook (after-init-hook . (lambda ()
-                             (setopt vc-handled-backends '(Git)))))
+  ((compile-command (format "make -k -j%d " (num-processors)))
+   (compilation-scroll-output 'first-error)
+   (compilation-ask-about-save nil)
+   (compilation-process-setup-function
+    #'hack-dir-local-variables-non-file-buffer)))
 
 (use-package auth-source
   :ensure nil
@@ -708,14 +730,10 @@ mouse-3: Toggle minor modes"
   ((ghostel-shell (or (executable-find "zsh") "/bin/bash"))
    (ghostel-term "xterm-256color")
    (ghostel-module-auto-install nil)
+   (ghostel-module-compile-command "zig build --color off --prefix %s -Doptimize=ReleaseFast -Dcpu=baseline")
    (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "C-g"))
-   (ghostel-point-leave-input-mode nil)
-   (ghostel-readonly-fast-exit nil))
+   (ghostel-point-leave-input-mode nil))
   :config
-  (define-advice ghostel-module-compile (:around (func) no-colour)
-    (let ((compilation-environment (cons "NO_COLOR=true"
-                                         compilation-environment)))
-      (funcall func)))
   (defun lina-ghostel-pre-spawn-hook ()
     (when (fboundp 'with-editor--setup)
       (let ((with-editor--envvar "EDITOR"))
@@ -724,8 +742,8 @@ mouse-3: Toggle minor modes"
   :bind
   (:map ghostel-semi-char-mode-map
         ("C-c C-u" . universal-argument))
-  (:map ghostel-readonly-mode-map
-        ("q" . ghostel-readonly-exit)))
+  (:map project-prefix-map
+        ("t" . ghostel-project)))
 
 (use-package apheleia
   :defines apheleia-mode-alist python-mode
@@ -770,6 +788,19 @@ mouse-3: Toggle minor modes"
   :delight gcmh-mode
   :hook (after-init-hook . gcmh-mode))
 
+(use-package sly
+  :custom ((inferior-lisp-program "sbcl")
+           (sly-complete-symbol-function #'sly-simple-completions)
+           (sly-symbol-completion-mode nil))
+  :config
+  (setf (alist-get common-lisp-hyperspec-root browse-url-handlers nil nil #'string-equal)
+        #'eww-browse-url)
+  :bind (:map sly-mode-map
+              ("C-c f" . sly-describe-function)
+              ("C-c v" . sly-describe-symbol)
+              ("C-c i" . sly-documentation-lookup)
+              ("C-c C-p" . sly-macroexpand-1)))
+
 ;;; built-in virtual major modes
 
 (use-package dired
@@ -790,6 +821,10 @@ mouse-3: Toggle minor modes"
         ([remap dired-mouse-find-file-other-window]
          . dired-mouse-find-file)))
 
+(use-package ibuffer
+  :ensure nil
+  :custom ((ibuffer-default-sorting-mode 'filename/process)))
+
 ;;; built-in language major modes
 
 (use-package prog-mode
@@ -806,7 +841,6 @@ mouse-3: Toggle minor modes"
   :hook (prog-mode-hook . lina/prog-mode-hook)
   :bind (:map prog-mode-map
               ("DEL" . backward-delete-char-untabify)
-              ("C-," . xref-go-back)
               ("C-w" . lina/c-w-dwim)))
 
 (use-package text-mode
@@ -819,7 +853,6 @@ mouse-3: Toggle minor modes"
   :custom
   (treesit-auto-install-grammar 'always)
   (treesit-enabled-modes '(bash-ts-mode
-                           c-ts-mode
                            json-ts-mode
                            typescript-ts-mode
                            tsx-ts-mode
@@ -840,7 +873,18 @@ mouse-3: Toggle minor modes"
 (use-package js
   :ensure nil
   :custom (js-indent-level 2)
+  :config
+  (defun lina-js-hook ()
+    (setq-local eldoc-echo-area-use-multiline-p t))
+  :hook ((js-base-mode-hook typescript-ts-base-mode-hook) . lina-js-hook)
   :mode ((rx ".conflist" eos) . js-json-mode))
+
+(use-package typescript-ts-mode
+  :ensure nil
+  :config
+  (defun lina-jsx-hook ()
+    nil)
+  :hook (tsx-ts-mode-hook . lina-jsx-hook))
 
 (use-package sh-script
   :ensure nil
@@ -859,7 +903,8 @@ mouse-3: Toggle minor modes"
 (use-package python
   :ensure nil
   :custom
-  ((python-flymake-command '("ruff"
+  ((python-flymake-command '("uvx"
+                             "ruff"
                              "check"
                              "--quiet"
                              "--output-format=concise"
@@ -913,6 +958,15 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :mode "\\.md\\'")
 
+(use-package make-mode
+  :ensure nil
+  :config
+  (defun lina-makefile-hook ()
+    (setq-local whitespace-style '(face tabs tab-mark))
+    (whitespace-mode t))
+  (unbind-key "C-c C-c" makefile-mode-map)
+  :hook (makefile-mode-hook . lina-makefile-hook))
+
 ;;; third-party major modes
 
 (use-package nix-ts-mode
@@ -941,17 +995,53 @@ created by FUNC will inherit the caller’s environment.
 ;;; other files
 
 (load "lina-window")
-;; (load "lina-smartparens")
 (load "lina-puni")
 (load "lina-elisp")
-(load "lina-llm")
 (load "lina-mail")
 (load "lina-eglot")
 (load "lina-org")
+(load "lina-c")
+(load "lina-llm")
 
 (use-package eval-expression-and-save
+  :ensure nil
   :load-path (lambda () user-lisp-directory)
   :bind
   ("M-:" . eval-expression-and-save))
+
+(use-package check-json
+  :ensure nil
+  :load-path (lambda () user-lisp-directory)
+  :hook (json-ts-mode-hook . check-json-enable-in-buffer))
+
+(use-package initialise-file-path
+  :demand t
+  :ensure nil
+  :load-path (lambda () user-lisp-directory)
+  :config
+  (setopt mode-line-buffer-identification
+          (let ((lmb (lambda ()
+                       (interactive)
+                       (message "%s" (buffer-file-name))))
+                (rmb (lambda ()
+                       (interactive)
+                       (let ((bfn (buffer-file-name)))
+                         (if (not bfn)
+                             (message "Buffer has no file name")
+                           (kill-new bfn)
+                           (message "Copied %s" bfn))))))
+            `(:propertize
+              (:eval (if-let* ((bfn (buffer-file-name)))
+                         (initialise-file-path bfn)
+                       "%12b"))
+              face mode-line-buffer-id
+              mouse-face mode-line-highlight
+              local-map
+              ,(define-keymap
+                 "<mode-line> <mouse-1>"        lmb
+                 "<mode-line> <mouse-3>"        rmb
+                 "<header-line> <mouse-1>"      #'mode-line-previous-buffer
+                 "<header-line> <mouse-3>"      #'mode-line-next-buffer
+                 "<header-line> <down-mouse-3>" #'ignore)))))
 
 ;;; init.el ends here
