@@ -3,8 +3,8 @@
 ;; Copyright (C) 2026 Lina Bhaile <emacs-devel@linabee.uk>
 
 ;; Author: Lina Bhaile <emacs-devel@linabee.uk>
-;; Version: 2.0.0
-;; Package-Requires: ((emacs "25.1"))
+;; Version: 3.0.0
+;; Package-Requires: ((emacs "29.1"))
 ;; Keywords: multimedia, processes
 ;; URL: https://github.com/lina-bh/.emacs.d
 
@@ -39,6 +39,29 @@
 ;;   the file after completion.
 ;; 2.0.0:
 ;; * Relicense to GPL-3.0-or-later
+;; 3.0.0:
+;;   Major update.
+;; * inffmpeg.el now requires Emacs 29 for `defvar-keymap'.
+;; * Structured construction and value access of widgets. We now use an ordered
+;;   alist of keys to constructor functions, call those to setup the buffer and
+;;   store the widget objects in a new alist. We collect the state by looping
+;;   over the widget alist and creating a new alist.
+;; * `inffmpeg' now reads the paths of the input and output files when called.
+;; * Preserve the unexpanded paths in the buffer and only expand them when we
+;;   run ffmpeg.
+;; * Fix a bug where the value of the browse-file checkbox was not respected.
+;; * `inffmpeg-mode' no longer inherits from `special-mode'.
+;; * Default input arguments now include "-vaapi_device" for hardware
+;;   acceleration.
+;; * The `default-directory' is now inherited from the input file.
+;; * Instead of clobbering `compilation-process-setup-function' and
+;;   `compilation-finish-functions', use `add-function' and `add-hook'.
+;; * Stop echoing the process status message if ffmpeg didn't finish
+;;   succesfully.
+;; * Use `shell-quote-argument' for its purpose instead of cargo-culting shell
+;;   escapes.
+;; * Inherit from `widget-keymap' in `inffmpeg-mode-map' instead of overwriting
+;;   the local map with `widget-keymap'.
 
 ;;; Code:
 
@@ -47,166 +70,201 @@
 (eval-and-compile
   (require 'wid-edit))
 
-(defvar inffmpeg-mode-map)
-
 (defgroup inffmpeg nil "Interface to ffmpeg."
   :group 'external)
 
 (defcustom inffmpeg-buffer-name "*inffmpeg*"
   "Name for inffmpeg's buffer."
-  :type 'string
-  :group 'inffmpeg)
+  :type 'string)
 
-(defcustom inffmpeg-default-input-arguments '(("-ss" "0"))
+(defcustom inffmpeg-default-input-arguments
+  '(("-vaapi_device" "/dev/dri/renderD128")
+    ("-ss" "0"))
   "Default input arguments to ffmpeg."
-  :type '(list string string)
-  :group 'inffmpeg)
+  :type '(repeat (list string string)))
 
-(defcustom inffmpeg-default-output-arguments '(("-map_metadata" "-1"))
+(defcustom inffmpeg-default-output-arguments
+  '(("-map_metadata" "-1"))
   "Default output arguments to ffmpeg."
-  :type '(list string string)
-  :group 'inffmpeg)
+  :type '(repeat (list string string)))
 
-(defcustom inffmpeg-default-directory "~/Videos/"
-  "Default directory to work in.  NIL means `default-directory'."
-  :type '(choice (const nil) directory))
+(defun inffmpeg--notify-file-field (field mustmatch)
+  "Create a lambda which reads a file name and sets the value of FIELD to it.
+MUSTMATCH says whether the user needs to enter an already existing path (yes for
+input, no for output)."
+  (lambda (widget &rest _ignored)
+    (let ((path (read-file-name "File: "
+                                (file-name-directory (widget-value field))
+                                nil
+                                mustmatch)))
+      (widget-value-set field path)
+      (widget-apply field :notify widget))))
 
-(defvar-local inffmpeg--overwrite-checkbox)
-(defvar-local inffmpeg--input-arguments-list)
-(defvar-local inffmpeg--input-field)
-(defvar-local inffmpeg--arguments-list)
-(defvar-local inffmpeg--output-field)
-(defvar-local inffmpeg--browse-file-checkbox)
+(defconst inffmpeg--template
+  `((overwrite . ,(lambda (value)
+                    (prog1
+                        (widget-create 'checkbox value)
+                      (widget-insert " Overwrite\n"))))
+    (input-arguments
+     .
+     ,(lambda (value)
+        (widget-insert "Input arguments: \n")
+        (widget-create 'editable-list
+                       :entry-format "%i%d %v"
+                       :value value
+                       '(group
+                         (editable-field :format "Arg: %v" :value "-")
+                         (editable-field :format "Val: %v")))))
+    (input-file
+     .
+     ,(lambda (value)
+        (widget-insert "Input: ")
+        (let ((self (widget-create 'file value)))
+          (widget-create 'push-button
+                         :notify (inffmpeg--notify-file-field self t)
+                         "Select file...")
+          self)))
+    (output-arguments
+     .
+     ,(lambda (value)
+        (widget-insert "\nArguments: \n")
+        (widget-create 'editable-list
+                       :entry-format "%i%d %v"
+                       :value value
+                       '(group
+                         (editable-field :format "Arg: %v" :value "-")
+                         (editable-field :format "Val: %v")))))
+    (output-file
+     .
+     ,(lambda (value)
+        (widget-insert "Output: ")
+        (let ((self (widget-create 'file value)))
+          (widget-create 'push-button
+                         :notify (inffmpeg--notify-file-field self nil)
+                         "Select file...")
+          self)))
+    (browse-file . ,(lambda (value)
+                      (widget-insert "\n")
+                      (prog1
+                          (widget-create 'checkbox value)
+                        (widget-insert " Open file after completion\n")))))
+  "Alist of keys to widget constructor functions, in order of appearance.")
 
-(defvar-local inffmpeg--state)
+(defvar-local inffmpeg--widgets nil
+  "Alist of keys to widget objects.")
+(defvar-local inffmpeg--state nil
+  "Alist of keys to saved values.")
 (put 'inffmpeg--state 'permanent-local t)
 
-(defun inffmpeg--update-state (&rest _ignore)
-  "Update `inffmpeg--state' to the values of the buffer's widgets."
-  (setq inffmpeg--state `((overwrite . ,(widget-value inffmpeg--overwrite-checkbox))
-                          (input-arguments . ,(widget-value inffmpeg--input-arguments-list))
-                          (input-file . ,(widget-value inffmpeg--input-field))
-                          (output-arguments . ,(widget-value inffmpeg--arguments-list))
-                          (output-file . ,(widget-value inffmpeg--output-field))
-                          (browse-file . ,(widget-value inffmpeg--browse-file-checkbox)))))
+(defun inffmpeg--render ()
+  "Set up inffmpeg's widgets.
+For each constructor in `inffmpeg--template', call it and save its value
+in `inffmpeg--widgets'."
+  (setq-local inffmpeg--widgets nil)
+  (dolist (pair inffmpeg--template)
+    (let ((key (car pair))
+          (constructor (cdr pair)))
+      (push (cons key
+                  (funcall constructor (cdr-safe (assq key inffmpeg--state))))
+            inffmpeg--widgets))))
 
-(defun inffmpeg--command (&rest _ignore)
-  "Build a list of arguments to ffmpeg from `inffmpeg--state'."
-  (inffmpeg--update-state)
+(defun inffmpeg--state ()
+  "Create an alist mapping keys to current values in the buffer."
+  (let (state)
+    (dolist (pair inffmpeg--widgets)
+      (push (cons (car pair)
+                  (widget-value (cdr pair)))
+            state))
+    (setq inffmpeg--state state)))
+
+(defun inffmpeg--command (state)
+  "Create an ffmpeg argument list from STATE."
   (let (args)
     (push "ffmpeg" args)
-    (let-alist inffmpeg--state
+    (let-alist state
       (when .overwrite
         (push "-y" args))
       (dolist (pair .input-arguments)
+        ;; must go backwards
         (setq args (cons (cadr pair) (cons (car pair) args))))
       (push "-i" args)
       (push (expand-file-name .input-file) args)
       (dolist (pair .output-arguments)
+        ;; id.
         (setq args (cons (cadr pair) (cons (car pair) args))))
       (push (expand-file-name .output-file) args))
     (nreverse args)))
 
-(defun inffmpeg--run (&rest _ignore)
+(defun inffmpeg--compilation-setup-function (output-file)
+  "Create a function which sets up the compilation buffer for ffmpeg to run in.
+If OUTPUT-FILE is non-nil, add a hook to `compilation-finish-functions'
+which calls `browse-url' on OUTPUT-FILE."
+  (lambda ()
+    (setq-local
+     process-connection-type nil
+     compilation-error-regexp-alist nil)
+    (when output-file
+      (add-hook 'compilation-finish-functions
+                (lambda (_buffer event)
+                  (when (string= event "finished\n")
+                    (browse-url (expand-file-name output-file))))
+                nil t))))
+
+(defun inffmpeg-run ()
   "Run ffmpeg in a compilation buffer."
-  (let* ((args (inffmpeg--command))
-         (output-file (cdr (assq 'output-file inffmpeg--state)))
+  (interactive)
+  (let* ((state (inffmpeg--state))
+         (args (inffmpeg--command state))
          (display-buffer-overriding-action '(display-buffer-below-selected))
-         (compilation-process-setup-function
-          (lambda ()
-            (setq-local
-             process-connection-type nil
-             compilation-error-regexp-alist nil
-             compilation-finish-functions
-             (list (lambda (_buffer event)
-                     (if (string= event "finished\n")
-                         (browse-url (expand-file-name output-file))
-                       (message "%S" event)))))))
-         cmd)
-    (compilation-start (string-join
-                        (nreverse (dolist (arg args cmd)
-                                    (push (concat "\"" arg "\"") cmd)))
-                        " "))))
+         (compilation-process-setup-function compilation-process-setup-function))
+    (add-function :after (var compilation-process-setup-function)
+                  (inffmpeg--compilation-setup-function
+                   (and (cdr (assq 'browse-file state))
+                        (car (last args)))))
+    (compilation-start (mapconcat #'shell-quote-argument args " "))))
 
-(defun inffmpeg--setup-buffer ()
-  "Insert widgets into `inffmpeg-mode' buffer."
-  (kill-all-local-variables)
-  (let ((inhibit-read-only t))
-    (erase-buffer))
-  (remove-overlays)
-  (setq-local header-line-format "ffmpeg")
-  (let-alist inffmpeg--state
-    (setq inffmpeg--overwrite-checkbox (widget-create 'checkbox .overwrite))
-    (widget-insert " Overwrite\n")
-    (widget-insert "Input arguments: \n")
-    (setq inffmpeg--input-arguments-list
-          (widget-create 'editable-list
-                         :entry-format "%i%d %v"
-                         :value .input-arguments
-                         '(group
-                           (editable-field :format "Arg: %v" :value "-")
-                           (editable-field :format "Val: %v"))))
-    (widget-insert "Input: ")
-    (setq inffmpeg--input-field (widget-create 'file .input-file))
-    (widget-create 'push-button
-                   :notify (lambda (widget _event _unknown)
-                             (let ((path (read-file-name "Input file: " nil nil t)))
-                               (widget-value-set inffmpeg--input-field path)
-                               (widget-apply inffmpeg--input-field :notify widget)))
-                   "Select file...")
-    (widget-insert "\nArguments: \n")
-    (setq inffmpeg--arguments-list
-          (widget-create 'editable-list
-                         :entry-format "%i%d %v"
-                         :value .output-arguments
-                         '(group
-                           (editable-field :format "Arg: %v" :value "-")
-                           (editable-field :format "Val: %v"))))
-    (widget-insert "Output: ")
-    (setq inffmpeg--output-field (widget-create 'file .output-file))
-    (widget-create 'push-button
-                   :notify (lambda (widget _event _unknown)
-                             (let ((path (read-file-name "Output file: ")))
-                               (widget-value-set inffmpeg--output-field path)
-                               (widget-apply inffmpeg--output-field :notify widget)))
-                   "Select file...")
-    (widget-insert "\n")
-    (setq inffmpeg--browse-file-checkbox (widget-create 'checkbox .browse-file)))
-  (widget-insert " Open file after completion\n")
-  (widget-create 'push-button
-                 :notify #'inffmpeg--run
-                 "Run")
-  (setq-local widget-global-map inffmpeg-mode-map
-              completion-at-point-functions '(widget-completions-at-point)
-              buffer-read-only nil
-              quit-window-kill-buffer t)
-  (use-local-map widget-keymap)
-  (widget-setup))
+(defvar-keymap inffmpeg-mode-map
+  :parent widget-keymap
+  "q" #'quit-window
+  "C-c C-c" #'inffmpeg-run)
 
-(define-derived-mode inffmpeg-mode special-mode "Inffmpeg"
+(define-derived-mode inffmpeg-mode nil "Inffmpeg"
   :syntax-table nil
   :abbrev-table nil
   "Mode for inffmpeg's buffer."
-  (inffmpeg--setup-buffer))
-
-(keymap-set inffmpeg-mode-map "q" #'quit-window)
+  (let ((inhibit-read-only t))
+    (erase-buffer))
+  (remove-overlays)
+  (inffmpeg--render)
+  (widget-create 'push-button
+                 :notify (lambda (&rest _ignored)
+                           (inffmpeg-run))
+                 "Run")
+  (setq-local completion-at-point-functions '(widget-completions-at-point)
+              quit-window-kill-buffer t)
+  (widget-setup))
 
 ;;;###autoload
-(defun inffmpeg ()
+(defun inffmpeg (input-file output-file)
   "Interactive user interface for ffmpeg."
-  (interactive)
+  (interactive
+   (let* ((input-file (read-file-name "Input file: " nil nil t))
+          (output-file (read-file-name "Output file: "
+                                       (file-name-directory input-file)
+                                       nil
+                                       nil
+                                       (concat (file-name-base input-file)
+                                               "_2."
+                                               (file-name-extension input-file)))))
+     (list input-file output-file)))
   (with-current-buffer (get-buffer-create inffmpeg-buffer-name)
-    (setq-local default-directory inffmpeg-default-directory
+    (setq-local default-directory (file-name-directory input-file)
                 inffmpeg--state
                 `((overwrite . t)
                   (input-arguments . ,inffmpeg-default-input-arguments)
-                  (input-file
-                   .
-                   ,(expand-file-name "input.mp4"))
+                  (input-file . ,input-file)
                   (output-arguments . ,inffmpeg-default-output-arguments)
-                  (output-file
-                   .
-                   ,(expand-file-name "output.mp4"))
+                  (output-file . ,output-file)
                   (browse-file . t)))
     (inffmpeg-mode)
     (display-buffer (current-buffer))))
