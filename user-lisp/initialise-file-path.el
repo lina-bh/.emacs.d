@@ -26,20 +26,21 @@
 
 ;;;###autoload
 (defun initialise-file-path (name)
-  (setq name (abbreviate-file-name name))
-  (condition-case nil
-      (let* ((cur (string-search "/" name))
-             (els (list (substring name 0 cur))))
-        (while (string-match (rx (group (? (not (any "/" alnum)))
-                                        alnum)
-                                 (0+ (not "/")) "/")
-                             name cur)
-          (push (substring name (match-beginning 1) (match-end 1)) els)
-          (setq cur (match-end 0)))
-        (string-join (nreverse (cons (substring name cur)
-                                     els))
-                     "/"))
-    (t name)))
+  (let ((remote (or (file-remote-p name)
+                    "")))
+    (setq name (abbreviate-file-name (file-local-name name)))
+    (condition-case nil
+        (let* ((cur (string-search "/" name))
+               (els (list (substring name 0 cur))))
+          (while (string-match (rx (group (? (not (any "/" alnum)))
+                                          alnum)
+                                   (0+ (not "/")) "/")
+                               name cur)
+            (push (substring name (match-beginning 1) (match-end 1)) els)
+            (setq cur (match-end 0)))
+          (concat remote
+                  (string-join (nreverse (cons (substring name cur) els)) "/")))
+      (t name))))
 
 (ert-deftest initialise-file-path-home-config ()
   "Test abbreviation of home config path."

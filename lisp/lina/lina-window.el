@@ -8,25 +8,14 @@
   (select-window (apply #'split-window-below args)))
 
 (setopt display-buffer-base-action '((display-buffer-reuse-window
+                                      display-buffer-same-window
                                       display-buffer-use-least-recent-window))
         switch-to-buffer-in-dedicated-window 'pop
         switch-to-buffer-obey-display-actions t
         split-window-preferred-direction 'horizontal)
 
 (setopt display-buffer-alist
-        `(
-          ((category . xref-jump)
-           (display-buffer-reuse-window
-            display-buffer-same-window))
-          ((or (category . comint)
-               (derived-mode . Info-mode)
-               "\\*ielm"
-               "\\*eww"
-               ;; "\\*gud"
-               )
-           .
-           ,display-buffer-base-action)
-          ("\\*Tetris\\*"
+        `(("\\*Tetris\\*"
            display-buffer-full-frame)
           ((or
             "COMMIT_EDITMSG"
@@ -52,7 +41,7 @@
                  (category . warning)
                  (derived-mode . flymake-diagnostics-buffer-mode)
                  (derived-mode . flymake-project-diagnostics-mode)
-                 (derived-mode . gdb-inferior-io-mode)
+                 (derived-mode . apropos-mode)
                  ,@(let ((regexps (list)))
                      (dolist (prefix '("trace-output"
                                        "eldoc"

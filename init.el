@@ -40,15 +40,22 @@
 (setq custom-file (locate-user-emacs-file "custom.el"))
 (load custom-file t)
 
+;;; some functions
+
+(defun lina-backward-delete-word (arg)
+  (interactive "p")
+  (if (use-region-p)
+      (call-interactively #'kill-region)
+    (delete-region (point) (progn
+                             (forward-word (- arg))
+                             (point)))))
+
 ;;; emacs
 (use-package emacs
   :ensure nil
   :custom
   ((auto-insert-query nil)
-   (directory-abbrev-alist
-    (let ((uln (user-login-name)))
-      (list (cons (file-name-concat "/var/home/" (user-login-name)) "~")
-            (cons (file-name-concat "/home/" (user-login-name)) "~"))))
+   (async-shell-command-buffer 'new-buffer)
    (auto-save-default nil)
    (backward-delete-char-untabify-method 'hungry)
    (bidi-inhibit-bpa t)
@@ -58,6 +65,10 @@
    (create-lockfiles nil)
    (cursor-in-non-selected-windows nil)
    (delete-selection-mode t)
+   (directory-abbrev-alist
+    (let ((uln (user-login-name)))
+      (list (cons (file-name-concat "/var/home/" (user-login-name)) "~")
+            (cons (file-name-concat "/home/" (user-login-name)) "~"))))
    (enable-recursive-minibuffers t)
    (extended-command-suggest-shorter nil)
    (fast-but-imprecise-scrolling t)
@@ -73,6 +84,7 @@
    (mouse-autoselect-window t)
    (native-comp-async-on-battery-power nil)
    (native-comp-async-report-warnings-errors 'silent)
+   (prettify-special-glyphs-mode t)
    (read-extended-command-predicate #'command-completion-default-include-p)
    (read-process-output-max 1048576)
    (redisplay-skip-fontification-on-input t)
@@ -85,6 +97,7 @@
    (suggest-key-bindings nil)
    (tab-always-indent 'complete)
    (tooltip-delay 0.1)
+   (tty-tip-mode t)
    (use-dialog-box nil)
    (use-short-answers t)
    (vc-follow-symlinks nil)
@@ -105,12 +118,14 @@
       "("
       (:propertize (""
                     (:eval
-                     (if (listp mode-name)
-                         (format-mode-line (cons (symbol-name major-mode)
-                                                 (cdr mode-name)))
-                       (if (memq major-mode '(c-mode c-ts-mode))
-                           mode-name
-                         (symbol-name major-mode)))))
+                     (cond
+                      ((memq major-mode '(c-mode c-ts-mode))
+                       mode-name)
+                      ((listp mode-name)
+                       (format-mode-line (cons (upcase-initials
+                                                (symbol-name major-mode))
+                                               (cdr mode-name))))
+                      (t (upcase-initials (symbol-name major-mode))))))
                    help-echo "Major mode
 mouse-1: Display major mode menu
 mouse-2: Show help for major mode
@@ -179,6 +194,7 @@ mouse-3: Toggle minor modes"
    ("C-S-z" . undo-redo)
    ("M-z" . undo-redo)
    ("C-," . pop-to-mark-command)
+   ("C-w" . lina-backward-delete-word)
    ("C-x x" . revert-buffer-quick)
    ("C-x C-x" . revert-buffer-quick)
    (:map visual-line-mode-map
@@ -376,6 +392,7 @@ mouse-3: Toggle minor modes"
 
 (use-package corfu
   :defines corfu-map
+  :commands corfu-insert corfu-next
   :ensure t
   :if (or (display-graphic-p)
           (>= emacs-major-version 31))
@@ -386,10 +403,17 @@ mouse-3: Toggle minor modes"
   (corfu-preselect 'first)
   (global-corfu-minibuffer t)
   (global-corfu-mode t)
-  (global-corfu-modes '((not comint-mode eshell-mode) t))
+  (global-corfu-modes t)
+  :config
+  (defun lina-corfu-tab ()
+    (interactive)
+    (call-interactively
+     (if (derived-mode-p 'comint-mode 'eshell-mode)
+         #'corfu-insert
+       #'corfu-next)))
   :bind (:map corfu-map
               ("C-g" . corfu-quit)
-              ("TAB" . corfu-next)
+              ("TAB" . lina-corfu-tab)
               ("<backtab>" . corfu-previous)))
 
 ;;; help
@@ -408,14 +432,19 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :custom
   (help-window-select t)
-  :bind
-  (("C-h m" . describe-keymap)
-   ("C-h F" . describe-face)
-   ("C-h C-g" . help-quit)
-   ("C-h C-h" . nil)
-   (:map help-mode-map
-         ("," . help-go-back)
-         ("p" . help-go-back))))
+  :config
+  (defun lina-help-quit ()
+    "Go back to previous topic, or quit the help window."
+    (interactive nil help-mode)
+    (if help-xref-stack
+        (help-xref-go-back (current-buffer))
+      (quit-window)))
+  :bind (("C-h m" . describe-keymap)
+         ("C-h F" . describe-face)
+         ("C-h C-g" . help-quit)
+         ("C-h C-h" . nil)
+         (:map help-mode-map
+               ("q" . lina-help-quit))))
 
 (use-package info
   :ensure nil
@@ -428,9 +457,10 @@ mouse-3: Toggle minor modes"
 
 (use-package man
   :ensure nil
-  :custom (Man-notify-method 'thrifty))
-
-;;; built-in minor modes
+  :custom (Man-notify-method 'thrifty)
+  :functions Man-notify-when-ready
+  :config
+  (advice-add #'Man-notify-when-ready :override #'display-buffer))
 
 ;;; built-in global minor modes
 
@@ -478,6 +508,19 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :custom (winner-mode t))
 
+(use-package windmove
+  :ensure nil
+  :bind
+  ("C-x w <left>" . windmove-swap-states-left)
+  ("C-x w <right>" . windmove-swap-states-right)
+  ("C-x w <up>" . windmove-swap-states-up)
+  ("C-x w <down>" . windmove-swap-states-down)
+  (:repeat-map lina-windmove-repeat-map
+               ("<left>" . windmove-swap-states-left)
+               ("<right>" . windmove-swap-states-right)
+               ("<up>" . windmove-swap-states-up)
+               ("<down>" . windmove-swap-states-down)))
+
 ;;;; built-in local minor modes
 
 (use-package flymake
@@ -501,7 +544,9 @@ mouse-3: Toggle minor modes"
   :custom
   ((display-line-numbers-grow-only t)
    (display-line-numbers-width 4))
-  :hook ((prog-mode-hook markdown-ts-mode-hook) . display-line-numbers-mode))
+  :hook ((prog-mode-hook markdown-ts-mode-hook conf-mode-hook)
+         .
+         display-line-numbers-mode))
 
 (use-package goto-addr
   :ensure nil
@@ -549,8 +594,9 @@ mouse-3: Toggle minor modes"
 (use-package find-func
   :ensure nil
   :bind
-  ("C-x F" . find-function-other-window)
-  ("C-x L" . find-library-other-window)
+  ("C-x F" . find-function)
+  ("C-x L" . find-library)
+  ("C-x V" . find-variable)
   ("C-h K" . find-function-on-key))
 
 (use-package ispell
@@ -613,16 +659,18 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :defines shell-mode
   :custom
-  ((shell-kill-buffer-on-exit t)
-   (explicit-shell-file-name (or
-                              (let ((zsh (executable-find "zsh")))
-                                (and (file-exists-p "~/.zshrc")
-                                     zsh))
-                              "/bin/bash")))
+  (shell-kill-buffer-on-exit nil)
   :config
-  (defun lina/shell-hook ()
-    (setq-local comint-process-echoes t))
-  :hook (shell-mode-hook . lina/shell-hook))
+  (define-advice shell (:around (fn &optional buffer file-name) remote)
+    (funcall fn buffer (or file-name
+                           (executable-find "zsh" t)
+                           "/bin/bash")))
+  (defun lina-shell-hook ()
+    (setq-local comint-process-echoes t
+                pcomplete-termination-string ""))
+  :hook (shell-mode-hook . lina-shell-hook)
+  :bind (:map shell-mode-map
+              ("C-c C-u" . universal-argument)))
 
 (use-package term
   :ensure nil
@@ -642,29 +690,6 @@ mouse-3: Toggle minor modes"
               ("<up>" . comint-previous-input)
               ("<down>" . comint-next-input)
               ("C-u" . comint-kill-input)))
-
-;;;;; eshell
-
-(use-package esh-mode
-  :functions eshell-reset
-  :ensure nil
-  :config
-  (defun lina/eshell-hook ()
-    (electric-pair-local-mode -1))
-  (when (fboundp 'unix-word-rubout)
-    (bind-key "C-w" #'unix-word-rubout eshell-mode-map))
-  :hook (eshell-mode-hook . lina/eshell-hook)
-  :bind (:map eshell-mode-map
-              ("C-u" . eshell-kill-input)
-              ("C-d" . eshell-send-eof-to-process)))
-
-(use-package eshell
-  :functions eshell/cd
-  :ensure nil
-  :custom
-  (eshell-scroll-to-bottom-on-input t)
-  (eshell-visual-subcommands '(("sudo" "bootc" "update")
-                               ("sudo" "dnf" "install"))))
 
 ;;; third-party integrations
 
@@ -726,21 +751,25 @@ mouse-3: Toggle minor modes"
 (use-package ghostel
   :functions ghostel-module-compile@no-colour
   :defines ghostel-semi-char-mode-map
+  :autoload (ghostel-send-string)
   :custom
   ((ghostel-shell (or (executable-find "zsh") "/bin/bash"))
    (ghostel-term "xterm-256color")
    (ghostel-module-auto-install nil)
    (ghostel-module-compile-command "zig build --color off --prefix %s -Doptimize=ReleaseFast -Dcpu=baseline")
-   (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "C-g"))
+   (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "M-&" "M-!"))
    (ghostel-point-leave-input-mode nil))
   :config
   (defun lina-ghostel-pre-spawn-hook ()
     (when (fboundp 'with-editor--setup)
       (let ((with-editor--envvar "EDITOR"))
         (with-editor--setup))))
+  (defun lina-ghostel-escape ()
+    (interactive)
+    (ghostel-send-string ""))
   :hook (ghostel-pre-spawn-hook . lina-ghostel-pre-spawn-hook)
   :bind
-  (:map ghostel-semi-char-mode-map
+  (:map ghostel-mode-map
         ("C-c C-u" . universal-argument))
   (:map project-prefix-map
         ("t" . ghostel-project)))
@@ -749,6 +778,9 @@ mouse-3: Toggle minor modes"
   :defines apheleia-mode-alist python-mode
   :ensure t
   :custom
+  (apheleia-global-mode t)
+  (apheleia-inhibit-functions (list (lambda ()
+                                      (null buffer-file-name))))
   (apheleia-formatters
    '((ruff "uvx"
            "--quiet"
@@ -773,13 +805,20 @@ mouse-3: Toggle minor modes"
                  "-")
      (tex-fmt "tex-fmt"
               "--stdin"
-              "-v")))
-  (apheleia-mode-alist
-   '((python-base-mode . (ruff ruff-isort))
-     (tex-mode . tex-fmt)))
+              "-v")
+     (jq "jq"
+         "."
+         "-M"
+         (apheleia-formatters-indent "--tab" "--indent"))
+     (prettier-typescript "apheleia-npx" "prettier" "--stdin-filepath" filepath
+                          "--parser=typescript"
+                          (apheleia-formatters-js-indent "--use-tabs" "--tab-width"))))
+  (apheleia-mode-alist `((python-mode . (ruff ruff-isort))
+                         (,(rx ".tex" eos) . tex-fmt)
+                         (,(rx ".json" eos) . jq)
+                         (,(rx ".ts" (? "x") eos) . prettier-typescript)))
   :config
-  (setq-mode-local python-mode apheleia-formatters-respect-fill-column t)
-  :hook ((tex-mode-hook python-base-mode-hook) . apheleia-mode))
+  (setq-mode-local python-mode apheleia-formatters-respect-fill-column t))
 
 ;;; third-party minor modes
 
@@ -793,7 +832,8 @@ mouse-3: Toggle minor modes"
            (sly-complete-symbol-function #'sly-simple-completions)
            (sly-symbol-completion-mode nil))
   :config
-  (setf (alist-get common-lisp-hyperspec-root browse-url-handlers nil nil #'string-equal)
+  (setf (alist-get common-lisp-hyperspec-root browse-url-handlers
+                   nil nil #'string-equal)
         #'eww-browse-url)
   :bind (:map sly-mode-map
               ("C-c f" . sly-describe-function)
@@ -829,10 +869,6 @@ mouse-3: Toggle minor modes"
 
 (use-package prog-mode
   :ensure nil
-  :init
-  (defun lina/c-w-dwim ()
-    (interactive)
-    (call-interactively (if (use-region-p) #'kill-region #'backward-kill-sexp)))
   :config
   (defun lina/prog-mode-hook ()
     (if (fboundp 'delete-trailing-whitespace-mode)
@@ -840,8 +876,7 @@ mouse-3: Toggle minor modes"
       (add-hook 'before-save-hook #'delete-trailing-whitespace nil t)))
   :hook (prog-mode-hook . lina/prog-mode-hook)
   :bind (:map prog-mode-map
-              ("DEL" . backward-delete-char-untabify)
-              ("C-w" . lina/c-w-dwim)))
+              ("DEL" . backward-delete-char-untabify)))
 
 (use-package text-mode
   :ensure nil
@@ -863,7 +898,17 @@ mouse-3: Toggle minor modes"
 (use-package conf-mode
   :ensure nil
   :mode
-  (((rx "." (or "container" "volume" "service" "pod") eos) . conf-desktop-mode)
+  (((rx "/containers/systemd/" (+ nonl) "."
+        (or "container"
+            "volume"
+            "service"
+            "pod"
+            "image"
+            "build"
+            "network")
+        eos)
+    .
+    conf-desktop-mode)
    ((rx "/isyncrc" eos) . conf-space-mode)
    ((rx ".ovpn" eos) . conf-space-mode)
    ((rx "/" (or "sysusers.d" "tmpfiles.d") "/" (+ nonl) ".conf" eos)
@@ -990,6 +1035,10 @@ created by FUNC will inherit the caller’s environment.
 
 (use-package yaml-mode
   :ensure t
+  :config
+  (defun lina-yaml-hook ()
+    (setq-local tab-always-indent t))
+  :hook (yaml-mode-hook . lina-yaml-hook)
   :mode ((rx "." (or "yaml" "yml") eos)))
 
 ;;; other files
@@ -1002,6 +1051,7 @@ created by FUNC will inherit the caller’s environment.
 (load "lina-org")
 (load "lina-c")
 (load "lina-llm")
+(load "lina-eshell")
 
 (use-package eval-expression-and-save
   :ensure nil

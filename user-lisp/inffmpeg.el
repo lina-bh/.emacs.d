@@ -62,6 +62,9 @@
 ;;   escapes.
 ;; * Inherit from `widget-keymap' in `inffmpeg-mode-map' instead of overwriting
 ;;   the local map with `widget-keymap'.
+;; 3.1.0:
+;; * `inffmpeg-run' now passes a NAME-FUNCTION to `compilation-start', so
+;;   ffmpeg compile buffers are now named "*inffmpeg-ffmpeg*".
 
 ;;; Code:
 
@@ -87,6 +90,9 @@
   '(("-map_metadata" "-1"))
   "Default output arguments to ffmpeg."
   :type '(repeat (list string string)))
+
+(defconst inffmpeg--compilation-buffer-name "*inffmpeg-ffmpeg*"
+  "Name of inffmpeg's compilation buffer.")
 
 (defun inffmpeg--notify-file-field (field mustmatch)
   "Create a lambda which reads a file name and sets the value of FIELD to it.
@@ -165,7 +171,7 @@ in `inffmpeg--widgets'."
     (let ((key (car pair))
           (constructor (cdr pair)))
       (push (cons key
-                  (funcall constructor (cdr-safe (assq key inffmpeg--state))))
+                  (funcall constructor (cdr (assq key inffmpeg--state))))
             inffmpeg--widgets))))
 
 (defun inffmpeg--state ()
@@ -221,7 +227,10 @@ which calls `browse-url' on OUTPUT-FILE."
                   (inffmpeg--compilation-setup-function
                    (and (cdr (assq 'browse-file state))
                         (car (last args)))))
-    (compilation-start (mapconcat #'shell-quote-argument args " "))))
+    (compilation-start (mapconcat #'shell-quote-argument args " ")
+                       nil
+                       (lambda (_mode)
+                         inffmpeg--compilation-buffer-name))))
 
 (defvar-keymap inffmpeg-mode-map
   :parent widget-keymap

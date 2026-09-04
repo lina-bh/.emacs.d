@@ -2,6 +2,8 @@
 (require 'eglot)
 (setopt eglot-stay-out-of '(flymake eldoc)
         eglot-send-changes-idle-time 1
+        eglot-ignored-server-capabilities '(:documentOnTypeFormattingProvider
+                                            :documentHighlightProvider)
         eglot-server-programs
         `(((python-mode python-ts-mode) "ty" "server")
           (haskell-mode "haskell-language-server-wrapper" "--lsp")

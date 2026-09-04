@@ -119,8 +119,9 @@ disabled.
                   t)))
   :hook ((lisp-data-mode-hook . lina-lisp-data-hook)
          (emacs-lisp-mode-hook . lina-elisp-hook))
-  :bind (:map emacs-lisp-mode-map
-              ("C-c C-c" . elisp-eval-region-or-buffer)))
+  :bind
+  (:map emacs-lisp-mode-map
+        ("C-c C-c" . elisp-eval-region-or-buffer)))
 
 (use-package ielm
   :commands ielm-return

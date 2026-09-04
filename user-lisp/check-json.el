@@ -29,14 +29,11 @@
 (defun check-json ()
   "Check that the current buffer's contents is a valid JSON object."
   (interactive)
-  (condition-case data
+  (condition-case nil
       (save-excursion
         (goto-char (point-min))
         (json-read))
-    (json-readtable-error (push-mark)
-                          (let ((loc (cadr data)))
-                            (goto-char loc)
-                            (user-error "JSON read error"))))
+    (json-readtable-error (user-error "JSON read error")))
   nil)
 
 ;;;###autoload

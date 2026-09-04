@@ -54,6 +54,7 @@
 
 (use-package gnus
   :ensure nil
+  :disabled t
   :custom
   (gnus-select-method '(nnmaildir "" (directory "~/Mail/")))
   (gnus-secondary-select-methods '((nntp "news.gmane.io")))

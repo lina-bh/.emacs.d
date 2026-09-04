@@ -28,7 +28,17 @@
 
 (use-package elec-pair
   :functions (electric-pair-inhibit-if-helps-balance)
-  :custom ((electric-pair-mode t))
+  :preface
+  (defvar lina-electric-pair-disabled-modes '(sh-base-mode))
+  :custom ((electric-pair-mode nil))
+  :config
+  (defun lina-turn-on-electric-pair-mode ()
+    (catch 'disabled
+      (dolist (mode lina-electric-pair-disabled-modes)
+        (when (derived-mode-p mode)
+          (throw 'disabled nil)))
+      (electric-pair-local-mode 1)))
+  :hook ((conf-mode-hook prog-mode-hook) . lina-turn-on-electric-pair-mode)
   :init
   (setopt electric-pair-inhibit-predicate
           (defun lina-electric-pair-inhibit (char)
@@ -78,7 +88,7 @@ fall back to `puni-backward-delete-char' (which see)."
     (puni-up-list backward))
   :delight " Puni"
   :hook
-  (lisp-data-mode-hook . puni-mode)
+  ((lisp-data-mode-hook typescript-ts-mode-hook) . puni-mode)
   (puni-mode-hook . electric-pair-local-mode)
   :bind
   (:map puni-mode-map
@@ -92,7 +102,7 @@ fall back to `puni-backward-delete-char' (which see)."
         ("C-c ." . puni-slurp-forward)
         ("C-c ," . puni-barf-forward)
         ("C-c s" . puni-splice)
-        ("M-r" . puni-raise)
+        ("M-r" . nil)
         ("M-<up>" . nil)
         ("M-<left>" . puni-backward-sexp)
         ("M-<right>" . puni-forward-sexp)

@@ -30,17 +30,24 @@
 Errors if FUNC is itself an autoload.
 When prefixed, insert the docstring, interactive and macro specs."
   (interactive "aInsert autoload for function: ")
-  (when (autoloadp func)
+  (when (or (not (fboundp func))
+            (autoloadp func))
     (error "%S is not loaded" func))
-  (prin1 (append `(autoload ',func)
-                 (list
-                  (file-name-base (symbol-file func 'defun)))
-                 (when current-prefix-arg
-                   (list
-                    (substring-no-properties (documentation func))
-                    (commandp func)
-                    (and (macrop func) ''macro))))
-         (current-buffer)))
+  (let ((form (reverse (list 'autoload `',func (file-name-base
+                                                (symbol-file func 'defun))))))
+    (push (and current-prefix-arg
+               (substring-no-properties (documentation func)))
+          form)
+    (cond
+     ((commandp func)
+      (push t form))
+     ((macrop func)
+      (push nil form)
+      (push t form))
+     ((null (car form))
+      (setq form (cdr form))))
+    (setq form (nreverse form))
+    (prin1 form (current-buffer))))
 
 (provide 'autoload-insert)
 ;;; autoload-insert.el ends here

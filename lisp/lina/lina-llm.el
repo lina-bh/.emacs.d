@@ -27,36 +27,30 @@
 (autoload 'ghostel-send-string "ghostel")
 
 (use-package gptel
-  :pin nongnu
+  :pin melpa
   :custom
-  (gptel-backend nil)
-  (gptel-log-level 'debug)
-  (gptel-directives '((default . "\
-Assume the following:
-* Respond as a computer program to which language is the interface.
-* Do not respond conversationally, but concisely.
-* Suggest methods and symbols, and sparingly example code blocks.
-* Do not rewrite files and return them.")))
+  ((gptel-log-level 'info))
+  :init
+  (when (fboundp 'markdown-ts-mode)
+    (setopt gptel-default-mode 'markdown-ts-mode))
   :config
-  (defun lina/gptel-hook ()
-    (local-set-key (kbd "C-c C-c") #'gptel-send))
-  (ignore-error user-error
-    (gptel-make-openai "OpenRouter"
-      :host "openrouter.ai"
-      :endpoint "/api/v1/chat/completions"
-      :stream t
-      :key (gptel-api-key-from-auth-source "openrouter.ai")
-      :models '(openrouter/auto))
-    (gptel-make-gemini "Gemini"
-      :key (gptel-api-key-from-auth-source
-            "generativelanguage.googleapis.com")
-      :stream t))
-  :hook (gptel-mode-hook . lina/gptel-hook))
+  (defun lina-gptel-hook ()
+    (keymap-local-set "C-c C-c" #'gptel-send))
+  (gptel-make-openai "llama.cpp"
+    :stream t
+    :protocol "http"
+    :host "localhost:9931"
+    :models '(unsloth/gemma-4-E4B-it-GGUF:Q4_K_M
+              unsloth/gemma-4-26B-A4B-it-qat-GGUF:Q4_K_XL))
+  :hook ((gptel-mode-hook . lina-gptel-hook)
+         (gptel-post-stream-hook . gptel-auto-scroll)
+         (gptel-post-response-functions . gptel-end-of-response)))
 
 (use-package agent-shell
   :custom
   ((agent-shell-anthropic-claude-acp-command
-    '("npx" "@agentclientprotocol/claude-agent-acp"))
+    '("npx" "-y" "@agentclientprotocol/claude-agent-acp"))
+   (agent-shell-pi-acp-command '("npx" "-y" "pi-acp"))
    (agent-shell-header-style 'text)
    (agent-shell-preferred-agent-config 'claude-code)
    (agent-shell-display-action nil)
@@ -66,7 +60,10 @@ Assume the following:
    (agent-shell-buffer-name-format
     (lambda (agent project)
       (format "*agent-shell %s @ %s*" agent project)))
-   (agent-shell-anthropic-default-model-id "opus")
+   (agent-shell-highlight-blocks nil)
+   (agent-shell-session-choices-function nil)
+   (agent-shell-show-welcome-message nil)
+   (agent-shell-thought-process-expand-by-default t)
    (shell-maker-prompt-before-killing-buffer nil))
   :config
   (defun lina-agent-shell-hook ()
