@@ -36,12 +36,11 @@
   :config
   (defun lina-gptel-hook ()
     (keymap-local-set "C-c C-c" #'gptel-send))
-  (gptel-make-openai "llama.cpp"
+  (gptel-make-gemini "Gemini"
+    :host "ai.lamancha-alhena.ts.net"
+    :models '(gemini-3.8-flash)
     :stream t
-    :protocol "http"
-    :host "localhost:9931"
-    :models '(unsloth/gemma-4-E4B-it-GGUF:Q4_K_M
-              unsloth/gemma-4-26B-A4B-it-qat-GGUF:Q4_K_XL))
+    :key "dummy")
   :hook ((gptel-mode-hook . lina-gptel-hook)
          (gptel-post-stream-hook . gptel-auto-scroll)
          (gptel-post-response-functions . gptel-end-of-response)))
@@ -70,63 +69,6 @@
     (keymap-local-set "C-a" #'beginning-of-line)
     (keymap-local-set "C-e" #'end-of-line))
   :hook (agent-shell-mode-hook . lina-agent-shell-hook))
-
-(use-package claude-code
-  :autoload (lina-claude-notify)
-  :commands (claude-code-send-escape
-             lina-claude-C-z)
-  :vc (:url "https://github.com/stevemolitor/claude-code.el" :rev :newest)
-  :custom ((claude-code-terminal-backend 'ghostel)
-           (claude-code-display-window-fn #'display-buffer)
-           (claude-code-program-switches
-            (list "--settings" (json-encode '(:theme "light-ansi")))))
-  :config
-  (defun lina-claude-C-z ()
-    (interactive)
-    (ghostel-send-string (kbd "C-_")))
-  (defun lina-claude-term-hook ()
-    (if (and (eq claude-code-terminal-backend 'ghostel)
-             (eq major-mode 'ghostel-mode)
-             (string-match-p "\\*claude" (buffer-name)))
-        (progn
-          (keymap-local-set "C-g" #'claude-code-send-escape)
-          (keymap-local-set "C-z" #'lina-claude-C-z))
-      (error "Wrong buffer for hook: %S %S" (buffer-name) major-mode)))
-  (setopt claude-code-notification-function
-          (eval `(defun lina-claude-notify (_title message)
-                   (let ((bn (buffer-name)))
-                     ,@(when (featurep 'dbusbind)
-                         '((notifications-notify :title bn
-                                                 :body message)))
-                     (message "%s: %s" bn message)))
-                t))
-  :hook (claude-code-start-hook . lina-claude-term-hook))
-
-(use-package monet
-  :disabled t
-  :vc (:url "https://github.com/stevemolitor/monet" :rev :newest)
-  :custom ((monet-diff-tool nil))
-  :hook (claude-code-process-environment-functions
-         .
-         monet-start-server-function))
-
-(use-package claude-code-ide
-  :disabled t
-  :vc (:url "https://github.com/manzaltu/claude-code-ide.el" :rev :newest)
-  :custom ((claude-code-ide-terminal-backend 'ghostel)
-           (claude-code-ide-cli-extra-flags (concat "--settings '"
-                                                    (json-encode
-                                                     '(:theme "light-ansi"))
-                                                    "'"))
-           (claude-code-ide-enable-execute-code nil)
-           (claude-code-ide-focus-claude-after-ediff nil)
-           (claude-code-ide-mcp-allowed-tools 'auto)
-           (claude-code-ide-no-flicker nil)
-           (claude-code-ide-show-claude-window-in-ediff nil)
-           (claude-code-ide-switch-tab-on-ediff nil)
-           (claude-code-ide-use-ide-diff nil)
-           (claude-code-ide-use-side-window nil)
-           (claude-code-ide-debug t)))
 
 (provide 'lina-llm)
 ;;; lina-llm.el ends here

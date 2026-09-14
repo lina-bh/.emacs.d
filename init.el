@@ -118,14 +118,16 @@
       "("
       (:propertize (""
                     (:eval
-                     (cond
-                      ((memq major-mode '(c-mode c-ts-mode))
-                       mode-name)
-                      ((listp mode-name)
-                       (format-mode-line (cons (upcase-initials
-                                                (symbol-name major-mode))
-                                               (cdr mode-name))))
-                      (t (upcase-initials (symbol-name major-mode))))))
+                     (let* ((name (symbol-name major-mode))
+                            (title (concat (upcase (substring name 0 1))
+                                           (substring name 1))))
+                       (cond
+                        ((memq major-mode '(c-mode c-ts-mode))
+                         mode-name)
+                        ((listp mode-name)
+                         (format-mode-line (cons title
+                                                 (cdr mode-name))))
+                        (t title)))))
                    help-echo "Major mode
 mouse-1: Display major mode menu
 mouse-2: Show help for major mode
@@ -203,7 +205,8 @@ mouse-3: Toggle minor modes"
 
 ;;;; core hooks
 (use-package exec-path-from-shell
-  :ensure t
+  :if (not (eq system-type 'windows-nt))
+  :ensure (not (eq system-type 'windows-nt))
   :custom ((exec-path-from-shell-variables '("PATH"
                                              "MANPATH"
                                              "INFOPATH"
@@ -247,7 +250,16 @@ mouse-3: Toggle minor modes"
                                 (modus-themes-load-theme 'modus-operandi)))))
 
 ;;;; fonts
-(set-frame-font "Iosevka-10.5" nil t)
+(add-hook 'window-setup-hook
+          (lambda ()
+            (cond
+             ((eq window-system 'w32)
+              (set-frame-font "Cascadia Mono 9" nil t))
+             ((eq window-system 'x)
+              (set-frame-font "Iosevka Fixed-9.9" nil t))
+             ((eq window-system 'pgtk)
+              (set-frame-font "Iosevka-10.5" nil t)))))
+
 (set-face-attribute 'fixed-pitch-serif nil :inherit 'fixed-pitch)
 
 ;;;; terminal
@@ -376,6 +388,10 @@ mouse-3: Toggle minor modes"
 
 ;;;; buffer completion
 
+(use-package dabbrev
+  :ensure nil
+  :custom (dabbrev-case-replace nil))
+
 (use-package cape
   :ensure t
   :pin gnu
@@ -432,19 +448,10 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :custom
   (help-window-select t)
-  :config
-  (defun lina-help-quit ()
-    "Go back to previous topic, or quit the help window."
-    (interactive nil help-mode)
-    (if help-xref-stack
-        (help-xref-go-back (current-buffer))
-      (quit-window)))
   :bind (("C-h m" . describe-keymap)
          ("C-h F" . describe-face)
          ("C-h C-g" . help-quit)
-         ("C-h C-h" . nil)
-         (:map help-mode-map
-               ("q" . lina-help-quit))))
+         ("C-h C-h" . nil)))
 
 (use-package info
   :ensure nil
@@ -453,6 +460,7 @@ mouse-3: Toggle minor modes"
   (:map Info-mode-map
         ("R" . info-display-manual))
   (:map help-map
+        ("r" . info-display-manual)
         ("s" . info-lookup-symbol)))
 
 (use-package man
@@ -460,7 +468,8 @@ mouse-3: Toggle minor modes"
   :custom (Man-notify-method 'thrifty)
   :functions Man-notify-when-ready
   :config
-  (advice-add #'Man-notify-when-ready :override #'display-buffer))
+  (advice-add #'Man-notify-when-ready :override #'display-buffer)
+  :bind ("C-x m" . man))
 
 ;;; built-in global minor modes
 
@@ -533,18 +542,21 @@ mouse-3: Toggle minor modes"
                   (cons #'flymake-eldoc-function
                         (delq #'flymake-eldoc-function
                               eldoc-documentation-functions)))))
+  (defun lina-flymake-diagnostics-hook ()
+    (setq-local truncate-lines nil))
   :hook ((flymake-mode-hook . lina-flymake-hook)
-         ((sh-base-mode-hook python-base-mode-hook) . flymake-mode))
-  :bind
-  (:map flymake-mode-map
-        ("C-x m" . flymake-show-buffer-diagnostics)))
+         ((flymake-diagnostics-buffer-mode-hook
+           flymake-project-diagnostics-mode-hook)
+          .
+          lina-flymake-diagnostics-hook)
+         ((sh-base-mode-hook python-base-mode-hook) . flymake-mode)))
 
 (use-package display-line-numbers
   :ensure nil
   :custom
   ((display-line-numbers-grow-only t)
    (display-line-numbers-width 4))
-  :hook ((prog-mode-hook markdown-ts-mode-hook conf-mode-hook)
+  :hook ((prog-mode-hook markdown-ts-mode-hook conf-mode-hook yaml-mode-hook)
          .
          display-line-numbers-mode))
 
@@ -552,6 +564,23 @@ mouse-3: Toggle minor modes"
   :ensure nil
   :hook ((prog-mode-hook . goto-address-prog-mode)
          (text-mode-hook . goto-address-mode)))
+
+(use-package whitespace
+  :ensure nil
+  :custom (whitespace-style '(face
+                              tabs
+                              ;; spaces
+                              ;; space-mark
+                              trailing
+                              lines
+                              space-before-tab
+                              ;; newline
+                              ;; newline-mark
+                              indentation
+                              empty
+                              space-after-tab
+                              tab-mark
+                              missing-newline-at-eof)))
 
 ;;; built-in commands
 
@@ -634,6 +663,16 @@ mouse-3: Toggle minor modes"
   :demand t
   :custom
   (tramp-show-ad-hoc-proxies t)
+  (tramp-remote-process-environment '("ENV="
+                                      "TMOUT=0"
+                                      "CDPATH="
+                                      "HISTORY="
+                                      "MAIL="
+                                      "MAILCHECK="
+                                      "MAILPATH="
+                                      "PAGER=cat"
+                                      "autocorrect="
+                                      "correct="))
   :config
   (advice-add #'tramp-recentf-cleanup :override #'ignore)
   (advice-add #'tramp-recentf-cleanup-all :override #'ignore)
@@ -662,9 +701,11 @@ mouse-3: Toggle minor modes"
   (shell-kill-buffer-on-exit nil)
   :config
   (define-advice shell (:around (fn &optional buffer file-name) remote)
-    (funcall fn buffer (or file-name
-                           (executable-find "zsh" t)
-                           "/bin/bash")))
+    (funcall fn buffer (if (eq system-type 'windows-nt)
+                           file-name
+                         (or file-name
+                             (executable-find "zsh" t)
+                             "/bin/bash"))))
   (defun lina-shell-hook ()
     (setq-local comint-process-echoes t
                 pcomplete-termination-string ""))
@@ -694,7 +735,6 @@ mouse-3: Toggle minor modes"
 ;;; third-party integrations
 
 (use-package dumb-jump
-  :ensure t
   :custom
   ((dumb-jump-prefer-searcher 'rg))
   :init
@@ -709,6 +749,7 @@ mouse-3: Toggle minor modes"
   :custom
   (magit-display-buffer-function #'display-buffer)
   (magit-commit-show-diff nil)
+  (magit-pull-or-fetch t)
   :config
   (defun lina/vertico-preselect-around (func &rest args)
     (let ((vertico-preselect 'prompt))
@@ -812,11 +853,16 @@ mouse-3: Toggle minor modes"
          (apheleia-formatters-indent "--tab" "--indent"))
      (prettier-typescript "apheleia-npx" "prettier" "--stdin-filepath" filepath
                           "--parser=typescript"
-                          (apheleia-formatters-js-indent "--use-tabs" "--tab-width"))))
+                          (apheleia-formatters-js-indent "--use-tabs" "--tab-width"))
+     (opentofu "tofu" "fmt" "-")))
   (apheleia-mode-alist `((python-mode . (ruff ruff-isort))
                          (,(rx ".tex" eos) . tex-fmt)
-                         (,(rx ".json" eos) . jq)
-                         (,(rx ".ts" (? "x") eos) . prettier-typescript)))
+                         ,@(mapcar (lambda (mode)
+                                     (cons mode 'jq))
+                                   '(json-mode
+                                     json-ts-mode))
+                         (,(rx ".ts" (? "x") eos) . prettier-typescript)
+                         (,(rx ".tf" eos) . opentofu)))
   :config
   (setq-mode-local python-mode apheleia-formatters-respect-fill-column t))
 
@@ -825,7 +871,7 @@ mouse-3: Toggle minor modes"
 (use-package gcmh
   :ensure t
   :delight gcmh-mode
-  :hook (after-init-hook . gcmh-mode))
+  :hook (emacs-startup-hook . gcmh-mode))
 
 (use-package sly
   :custom ((inferior-lisp-program "sbcl")
@@ -874,7 +920,7 @@ mouse-3: Toggle minor modes"
     (if (fboundp 'delete-trailing-whitespace-mode)
         (delete-trailing-whitespace-mode t)
       (add-hook 'before-save-hook #'delete-trailing-whitespace nil t)))
-  :hook (prog-mode-hook . lina/prog-mode-hook)
+  :hook ((prog-mode-hook yaml-mode-hook) . lina/prog-mode-hook)
   :bind (:map prog-mode-map
               ("DEL" . backward-delete-char-untabify)))
 
@@ -1029,7 +1075,7 @@ created by FUNC will inherit the caller’s environment.
 (fn FUNC)" nil 'macro)
 
 (use-package kubed
-  :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "master")
+  ;; :vc (:url "https://git.sr.ht/~eshel/kubed" :rev "master")
   :bind
   ("C-c k" . kubed-transient))
 
@@ -1037,7 +1083,13 @@ created by FUNC will inherit the caller’s environment.
   :ensure t
   :config
   (defun lina-yaml-hook ()
-    (setq-local tab-always-indent t))
+    (setopt-local tab-always-indent t
+                  whitespace-style '( face tabs spaces trailing
+                                      space-before-tab indentation
+                                      empty space-after-tab tab-mark
+                                      missing-newline-at-eof))
+    (visual-line-mode -1)
+    (whitespace-mode))
   :hook (yaml-mode-hook . lina-yaml-hook)
   :mode ((rx "." (or "yaml" "yml") eos)))
 

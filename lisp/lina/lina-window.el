@@ -67,3 +67,6 @@
  ("C-x 2" . split-window-below-and-select)
  ("C-x 3" . split-window-right-and-select)
  ("C-x q" . quit-window))
+
+(use-package ace-window
+  :bind ("C-x o" . ace-window))

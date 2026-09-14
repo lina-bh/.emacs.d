@@ -63,12 +63,11 @@
                           #'backward-kill-sexp)))
   (defun lina/puni-kill-whole-line ()
     (interactive)
-    (let ((kill-whole-line t))
-      (back-to-indentation)
-      (puni-kill-line)
-      (puni-soft-delete-by-move (lambda ()
-                                  (forward-line -1)
-                                  (end-of-line)))))
+    (puni-soft-delete-by-move (lambda ()
+                                (back-to-indentation))
+                              nil
+                              nil
+                              'delete-one))
   (defun lina/puni-hungry-backward-delete-char ()
     "Hungrily delete backwards keeping expressions balanced.
 If prefixed, or the region is active, or at the beginning of the line,
@@ -95,7 +94,7 @@ fall back to `puni-backward-delete-char' (which see)."
         ([remap puni-backward-delete-char]
          .
          lina/puni-hungry-backward-delete-char)
-        ("C-k" . lina/puni-kill-whole-line)
+        ("C-k" . puni-kill-line)
         ("C-t" . puni-transpose)
         ("C-w" . lina/puni-c-w-dwim)
         ("C-c r" . puni-raise)
