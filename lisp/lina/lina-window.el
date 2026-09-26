@@ -30,12 +30,13 @@
           ("\\*Customize"
            display-buffer-reuse-mode-window)
           ((or (derived-mode . help-mode)
+               "\\*eldoc"
                "\\*sly-description")
            display-buffer-in-side-window
            (window-height . ,(/ 1.0 3))
            (preserve-size . (nil . t))
            (no-delete-other-windows . t)
-           (slot . 1))
+           (slot . 0))
           ((and (not (major-mode . grep-mode))
                 (or
                  (category . warning)
@@ -58,12 +59,11 @@
            display-buffer-in-side-window
            (window-height . ,(/ 1.0 3))
            (preserve-size . (nil . t))
-           (slot . 0)
+           (slot . 1)
            (window-parameters
             (no-delete-other-windows . t)))))
 
 (bind-keys
- ("C-x 1" . same-window-prefix)
  ("C-x 2" . split-window-below-and-select)
  ("C-x 3" . split-window-right-and-select)
  ("C-x q" . quit-window))

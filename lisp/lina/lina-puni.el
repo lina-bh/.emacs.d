@@ -38,7 +38,8 @@
         (when (derived-mode-p mode)
           (throw 'disabled nil)))
       (electric-pair-local-mode 1)))
-  :hook ((conf-mode-hook prog-mode-hook) . lina-turn-on-electric-pair-mode)
+  :hook (((conf-mode-hook prog-mode-hook) . lina-turn-on-electric-pair-mode)
+         ((yaml-ts-mode-hook yaml-mode-hook) . electric-pair-local-mode))
   :init
   (setopt electric-pair-inhibit-predicate
           (defun lina-electric-pair-inhibit (char)
@@ -61,13 +62,11 @@
     (call-interactively (if (use-region-p)
                             #'puni-kill-active-region
                           #'backward-kill-sexp)))
-  (defun lina/puni-kill-whole-line ()
+  (defun lina-puni-kill-whole-line ()
     (interactive)
-    (puni-soft-delete-by-move (lambda ()
-                                (back-to-indentation))
-                              nil
-                              nil
-                              'delete-one))
+    (let ((kill-whole-line t))
+      (beginning-of-line)
+      (puni-kill-line)))
   (defun lina/puni-hungry-backward-delete-char ()
     "Hungrily delete backwards keeping expressions balanced.
 If prefixed, or the region is active, or at the beginning of the line,
@@ -87,14 +86,14 @@ fall back to `puni-backward-delete-char' (which see)."
     (puni-up-list backward))
   :delight " Puni"
   :hook
-  ((lisp-data-mode-hook typescript-ts-mode-hook) . puni-mode)
+  ((lisp-data-mode-hook typescript-ts-mode-hook hcl-mode-hook) . puni-mode)
   (puni-mode-hook . electric-pair-local-mode)
   :bind
   (:map puni-mode-map
         ([remap puni-backward-delete-char]
          .
          lina/puni-hungry-backward-delete-char)
-        ("C-k" . puni-kill-line)
+        ("C-k" . lina-puni-kill-whole-line)
         ("C-t" . puni-transpose)
         ("C-w" . lina/puni-c-w-dwim)
         ("C-c r" . puni-raise)

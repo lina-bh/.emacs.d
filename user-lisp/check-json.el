@@ -23,17 +23,18 @@
 
 ;;; Code:
 
-(require 'json)
-
 ;;;###autoload
 (defun check-json ()
   "Check that the current buffer's contents is a valid JSON object."
   (interactive)
-  (condition-case nil
+  (condition-case err
       (save-excursion
         (goto-char (point-min))
-        (json-read))
-    (json-readtable-error (user-error "JSON read error")))
+        (json-parse-buffer))
+    (json-parse-error
+     (let ((fault (nth 3 err)))
+       (goto-char fault)
+       (pulse-momentary-highlight-one-line fault))))
   nil)
 
 ;;;###autoload

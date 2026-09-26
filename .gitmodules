@@ -7,3 +7,6 @@
 [submodule "user-lisp/sly"]
 	path = user-lisp/sly
 	url = https://github.com/joaotavora/sly.git
+[submodule "user-lisp/flymake-biomejs"]
+	path = user-lisp/flymake-biomejs
+	url = git@github.com:lina-bh/flymake-biomejs.git

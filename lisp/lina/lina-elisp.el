@@ -25,13 +25,14 @@ disabled.
 
 (fn &optional ARG)" t nil)
 
-(defconst lina-elisp-auto-insert '(nil
-                                   ";;; "
-                                   (file-name-nondirectory (buffer-file-name))
-                                   " --- "
-                                   (file-name-base (buffer-file-name))
-                                   "  -*- lexical-binding: t; -*-" '(setq lexical-binding t)
-                                   "
+(defconst lina-elisp-auto-insert
+  '(nil
+    ";;; "
+    (file-name-nondirectory (buffer-file-name))
+    " --- "
+    (file-name-base (buffer-file-name))
+    "  -*- lexical-binding: t; -*-" '(setq lexical-binding t)
+    "
 
 ;; Copyright (C) " (format-time-string "%Y") " Lina Bhaile <emacs-devel@linabee.uk>
 
@@ -59,8 +60,8 @@ disabled.
 " _ "
 
 (provide '"
-                                   (file-name-base (buffer-file-name))
-                                   ")
+    (file-name-base (buffer-file-name))
+    ")
 ;;; " (file-name-nondirectory (buffer-file-name)) " ends here\n"))
 
 (use-package elisp-mode
@@ -154,7 +155,7 @@ disabled.
 
 (use-package aggressive-indent
   :ensure t
-  :pin gnu
+  :pin gnu-devel
   :custom
   ((aggressive-indent-dont-indent-if
     `((and (memq major-mode '(c-mode c-ts-mode))

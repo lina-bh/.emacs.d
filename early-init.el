@@ -24,7 +24,9 @@
 
 ;;; Code:
 
-(setq initial-frame-alist (append default-frame-alist '((fullscreen . maximized)))
+(setq default-frame-alist '((width . 180) (height . 36))
+      initial-frame-alist (append default-frame-alist
+                                  '((fullscreen . maximized)))
       recentf-auto-cleanup 'never
       recentf-keep nil
       gc-cons-threshold most-positive-fixnum

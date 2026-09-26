@@ -1,0 +1,10 @@
+yaml-mode yaml-ts-mode
+
+(namespace
+ "{" n
+ "apiVersion: \"v1\"," n
+ "kind: \"Namespace\"," n
+ "metadata: {" n
+ "name: \"" p "\"," n
+ "}" n
+ "}")

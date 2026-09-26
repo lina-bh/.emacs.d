@@ -51,10 +51,12 @@
 (defun lina-eglot-hover-eldoc-function (cb &rest _ignored)
   (eglot-hover-eldoc-function
    (lambda (docstring &rest args)
-     (when (and docstring
-                (string-match (rx "```" (* nonl) "\n" (group (* nonl)))
-                              docstring))
-       (plist-put args :echo (match-string-no-properties 1 docstring)))
+     (when docstring
+       (plist-put args
+                  :echo (replace-regexp-in-string
+                         (rx (1+ (or space "\n")))
+                         " "
+                         (substring-no-properties docstring))))
      (apply cb docstring args))))
 
 
