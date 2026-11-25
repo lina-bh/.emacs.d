@@ -1,0 +1,9 @@
+# -*- mode: snippet -*-
+# key: k-ns
+# --
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $1
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled

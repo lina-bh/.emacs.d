@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# key: k-securitycontext
+# --
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsGroup: $1
+  runAsNonRoot: true
+  runAsUser: $2

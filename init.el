@@ -41,7 +41,8 @@
                                         (ghostel . "melpa")
                                         (package-lint . "nongnu-devel")
                                         (terraform-mode . "melpa")
-                                        (hcl-mode . "melpa")))
+                                        (hcl-mode . "melpa"))
+              package-review-policy nil)
 (package-initialize)
 
 (setq custom-file (locate-user-emacs-file "custom.el"))
@@ -69,10 +70,12 @@
    (backward-delete-char-untabify-method 'hungry)
    (bidi-inhibit-bpa t)
    (bidi-paragraph-direction 'left-to-right)
+   (blink-cursor-mode nil)
    (column-number-mode t)
    (confirm-kill-processes nil)
    (create-lockfiles nil)
    (cursor-in-non-selected-windows nil)
+   (cursor-type 'bar)
    (delete-selection-mode t)
    (directory-abbrev-alist
     (let ((uln (user-login-name)))
@@ -93,9 +96,10 @@
    (make-backup-files nil)
    (max-redisplay-ticks 1000000)
    (mouse-autoselect-window t)
+   (mouse-wheel-progressive-speed t)
    (native-comp-async-on-battery-power nil)
    (native-comp-async-report-warnings-errors 'silent)
-   (pixel-scroll-precision-mode t)
+   (pixel-scroll-precision-mode nil)
    (prettify-special-glyphs-mode t)
    (read-extended-command-predicate #'command-completion-default-include-p)
    (read-process-output-max 1048576)
@@ -263,17 +267,27 @@ mouse-3: Toggle minor modes"
   :ensure t
   :pin gnu
   :custom
-  ((fontaine-presets '((x :default-family "Iosevka Fixed"
-                          :default-height 99
-                          :fixed-pitch-family "Iosevka Fixed"
-                          :fixed-pitch-serif-family "Iosevka Fixed"
-                          :variable-pitch-family "Liberation Sans"
-                          :variable-pitch-height 1.1)))
+  ((fontaine-presets '((x
+                        :default-family "Iosevka Fixed"
+                        :default-height 105
+                        :fixed-pitch-family "Iosevka Fixed"
+                        :fixed-pitch-serif-family "Iosevka Fixed"
+                        :variable-pitch-family "Liberation Sans"
+                        :variable-pitch-height 1.1)
+                       (pgtk
+                        :default-family "Iosevka Fixed"
+                        :default-height 105
+                        :fixed-pitch-family "Iosevka Fixed"
+                        :fixed-pitch-serif-family "Iosevka Fixed"
+                        :variable-pitch-family "Liberation Sans"
+                        :variable-pitch-height 1.1)))
    (fontaine-mode t))
   :init
   (cond
    ((featurep 'x)
-    (fontaine-set-preset 'x))))
+    (fontaine-set-preset 'x))
+   ((featurep 'pgtk)
+    (fontaine-set-preset 'pgtk))))
 
 ;;;; terminal
 (use-package term/xterm
@@ -428,14 +442,30 @@ mouse-3: Toggle minor modes"
   :pin gnu
   :ensure t
   :demand t
-  :custom (cape-elisp-symbol-wrapper nil)
+  :custom ((cape-elisp-symbol-wrapper nil)
+           (cape-dabbrev-buffer-function #'lina-cape-buffers))
   :functions (cape-abbrev
               cape-dabbrev
-              cape-file)
+              cape-file
+              cape--buffer-list)
   :config
   (add-hook 'completion-at-point-functions #'cape-dabbrev 0)
   (add-hook 'completion-at-point-functions #'cape-abbrev -5)
   (add-hook 'completion-at-point-functions #'cape-file -10)
+  (defun lina-cape-project-file (&optional interactive)
+    (interactive '(t))
+    (let* ((project (project-current))
+           (root (project-root project))
+           (cape-file-directory root))
+      (cape-file interactive)))
+  (defun lina-cape-buffers ()
+    (append
+     (cape--buffer-list
+      (lambda (buf) (memq major-mode (list
+                                      (buffer-local-value 'major-mode buf)
+                                      'eww-mode))))
+     (and (fboundp 'ghostel-project-buffer-list)
+          (ghostel-project-buffer-list))))
   :bind
   ("M-/" . cape-dabbrev)
   ("M-f" . cape-file))
@@ -509,7 +539,10 @@ mouse-3: Toggle minor modes"
     (let ((inhibit-read-only t))
       (ansi-osc-apply-on-region (point-min) (point-max))))
   :hook (Man-cooked-hook . lina-man-render-hyperlinks)
-  :bind ("C-x m" . man))
+  :bind
+  ("C-x m" . man)
+  (:map Man-mode-map
+        ("/" . isearch-forward-regexp)))
 
 ;;; built-in global minor modes
 
@@ -761,7 +794,8 @@ mouse-3: Toggle minor modes"
   (defun lina-shell-hook ()
     (setq-local comint-process-echoes t
                 pcomplete-termination-string ""))
-  :hook (shell-mode-hook . lina-shell-hook)
+  :hook ((shell-mode-hook . lina-shell-hook)
+         (shell-command-mode-hook . view-mode))
   :bind (:map shell-mode-map
               ("C-c C-u" . universal-argument)))
 
@@ -843,7 +877,7 @@ mouse-3: Toggle minor modes"
   :ensure t
   :pin nongnu-devel
   :config
-  (defun lina-ghostel-pre-spawn-hook ()
+  (defun lina-ghostel-with-editor-hook ()
     (when (fboundp 'with-editor--setup)
       (let ((with-editor--envvar "EDITOR"))
         (with-editor--setup))))
@@ -861,14 +895,36 @@ mouse-3: Toggle minor modes"
   ((ghostel-shell (or (executable-find "zsh") "/bin/bash"))
    (ghostel-term "xterm-256color")
    (ghostel-module-auto-install nil)
-   (ghostel-module-compile-command "zig build --color off --prefix %s -Doptimize=ReleaseFast -Dcpu=baseline")
-   (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "M-&" "M-!"))
+   (ghostel-module-compile-command "zig build --verbose --color off --prefix %s -Doptimize=ReleaseFast -Dcpu=baseline")
+   (ghostel-keymap-exceptions '("C-c" "C-x" "C-h" "M-x" "M-:" "M-&" "M-!" "C-p"))
    (ghostel-point-leave-input-mode nil)
-   (ghostel-buffer-name-function #'ghostel-buffer-name-by-title))
+   (ghostel-buffer-name-function #'ghostel-buffer-name-by-title)
+   (ghostel-eval-cmds '(("man" man)))
+   (ghostel-notification-function #'lina-ghostel-notify))
+  :config
+  (autoload 'notifications-notify "notifications")
+  (defun lina-ghostel-notify (title body)
+    (static-if (featurep 'dbusbind)
+        (notifications-notify :title title
+                              :body body))
+    (message "%s: %s" title body))
+  (defun lina-ghostel-pre-spawn-hook ()
+    (setenv "CLAUDE_CODE_SCROLL_SPEED" "1"))
+  (define-advice ghostel--forward-scroll-event
+      (:around (fn &rest args) xwayland)
+    (let ((last-event-device
+           (if (string-prefix-p "xwayland-" (or last-event-device ""))
+               nil
+             last-event-device)))
+      (apply fn args)))
+  :hook (ghostel-pre-spawn-hook . lina-ghostel-pre-spawn-hook)
   :bind
   (:map ghostel-mode-map
-        ("C-c C-u" . universal-argument))
+        ("C-c C-u" . universal-argument)
+        ("C-x <left>" . ghostel-project-previous)
+        ("C-x <right>" . ghostel-project-next))
   (:map project-prefix-map
+        ("C-t" . ghostel-project)
         ("t" . ghostel-project-list-buffers)))
 
 ;;; third-party minor modes
@@ -904,11 +960,21 @@ mouse-3: Toggle minor modes"
   :preface
   (setq yas-alias-to-yas/prefix-p nil)
   :custom
-  ((yas-new-snippet-default "\
+  ((yas-global-mode t)
+   (yas-new-snippet-default "\
 # -*- mode: snippet -*-
-# key: ${2:${1:$(yas--key-from-desc yas-text)}}
+# key: $1
 # --
-$0`(yas-escape-text yas-selected-text)`")))
+$0`(let ((yas-indent-line nil)) (yas-escape-text yas-selected-text))`"))
+  :delight (yas-minor-mode)
+  :bind (:map yas-minor-mode-map
+              ("C-x '" . yas-expand)))
+
+(use-package yasnippet-capf
+  :ensure t
+  :commands (yasnippet-capf)
+  :init
+  (add-hook 'completion-at-point-functions #'yasnippet-capf -6))
 
 ;;; built-in virtual major modes
 
@@ -921,6 +987,7 @@ $0`(yas-escape-text yas-selected-text)`")))
   (dired-kill-when-opening-new-dired-buffer t)
   (dired-listing-switches "-ahlDFZ --group-directories-first")
   (dired-recursive-deletes 'always)
+  (dired-dwim-target t)
   :init
   (setenv "LC_COLLATE" "C")
   :hook
@@ -976,7 +1043,8 @@ $0`(yas-escape-text yas-selected-text)`")))
                            typescript-ts-mode
                            tsx-ts-mode
                            python-ts-mode
-                           markdown-ts-mode))
+                           markdown-ts-mode
+                           yaml-ts-mode))
   (treesit-font-lock-level 4))
 
 (use-package conf-mode
@@ -1003,15 +1071,23 @@ $0`(yas-escape-text yas-selected-text)`")))
   :ensure nil
   :custom
   (sh-basic-offset 2)
+  :config
+  (defun lina-bash-hook ()
+    (setq-local backward-delete-char-untabify-method 'untabify
+                tab-always-indent t))
+  :hook (sh-base-mode-hook . lina-bash-hook)
   :mode ((rx "/.env" (opt ".local")) . sh-mode))
 
 (use-package dockerfile-ts-mode
   :ensure nil
   :defines dockerfile-ts-mode
   :config
-  (setq-mode-local dockerfile-ts-mode indent-line-function
-                   #'indent-relative-first-indent-point)
-  :mode ((rx (or "Docker" "Container") "file" (* nonl) eos)))
+  ;; FIXME: make this a hook
+  (setq-mode-local dockerfile-ts-mode
+                   indent-line-function #'indent-relative-first-indent-point)
+  :mode ((rx (or "Docker" "Container") "file" (* nonl) eos))
+  :bind (:map dockerfile-ts-mode-map
+              ("DEL" . backward-delete-char-untabify)))
 
 (use-package python
   :ensure nil
@@ -1075,10 +1151,13 @@ $0`(yas-escape-text yas-selected-text)`")))
   :ensure nil
   :config
   (defun lina-makefile-hook ()
-    (setq-local whitespace-style '(face tabs tab-mark))
+    (setq-local whitespace-style '(face tabs tab-mark)
+                indent-line-function #'indent-relative
+                backward-delete-char-untabify-method 'untabify)
     (whitespace-mode t))
   (unbind-key "C-c C-c" makefile-mode-map)
-  :hook (makefile-mode-hook . lina-makefile-hook))
+  :hook (makefile-mode-hook . lina-makefile-hook)
+  :mode (((rx "/Justfile" eos) . makefile-mode)))
 
 ;;; third-party major modes
 

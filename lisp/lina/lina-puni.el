@@ -43,9 +43,12 @@
   :init
   (setopt electric-pair-inhibit-predicate
           (defun lina-electric-pair-inhibit (char)
-            (or
-             (electric-pair-inhibit-if-helps-balance char)
-             (nth 3 (syntax-ppss))))))
+            (catch 'lina-electric-pair-inhibit
+              (or
+               (electric-pair-inhibit-if-helps-balance char)
+               (nth 3 (syntax-ppss)))))))
+
+
 
 (use-package puni
   :ensure t
@@ -55,36 +58,50 @@
   :commands (puni-kill-active-region
              puni-kill-line
              puni-backward-delete-char
-             puni-delete-region)
+             puni-kill-region
+             puni-forward-delete-char)
+  :delight " Puni"
   :config
   (defun lina/puni-c-w-dwim ()
+    "If region active call `puni-kill-region', otherwise `backward-kill-sexp'."
     (interactive)
-    (call-interactively (if (use-region-p)
-                            #'puni-kill-active-region
-                          #'backward-kill-sexp)))
+    (if (use-region-p)
+        (puni-kill-region)
+      (call-interactively #'backward-kill-sexp)))
+
   (defun lina-puni-kill-whole-line ()
     (interactive)
-    (let ((kill-whole-line t))
-      (beginning-of-line)
-      (puni-kill-line)))
-  (defun lina/puni-hungry-backward-delete-char ()
+    (backward-to-indentation 0)
+    (puni-kill-line)
+    (puni-soft-delete-by-move (lambda ()
+                                (forward-line -1)
+                                (end-of-line))))
+
+  (defun lina-puni-hungry-backward-delete-char (&optional arg)
     "Hungrily delete backwards keeping expressions balanced.
 If prefixed, or the region is active, or at the beginning of the line,
 fall back to `puni-backward-delete-char' (which see)."
-    (interactive)
-    (if (or current-prefix-arg
-            (use-region-p)
-            (not (looking-back (rx line-start (+ blank))
-                               (save-excursion
-                                 (beginning-of-line)
-                                 (point)))))
-        (call-interactively #'puni-backward-delete-char)
-      (puni-soft-delete-by-move (lambda ()
-                                  (search-backward-regexp "[^[:space:]]")))))
-  (defun lina-puni-up-list (&optional backward)
     (interactive "P")
-    (puni-up-list backward))
-  :delight " Puni"
+    (unless (or current-prefix-arg
+                (use-region-p)
+                (not (looking-back (rx line-start (+ blank))
+                                   (save-excursion
+                                     (beginning-of-line)
+                                     (point)))))
+      (puni-soft-delete-by-move (lambda ()
+                                  (search-backward-regexp "[^[:space:]]")
+                                  (forward-char))))
+    (puni-backward-delete-char arg))
+
+  (defun lina-puni-hungry-forward-delete-char (&optional arg)
+    "Hungrily delete forwards keeping expressions balanced."
+    (interactive "P")
+    (unless (or current-prefix-arg
+                (use-region-p))
+      (puni-soft-delete-by-move (lambda ()
+                                  (and (> (skip-chars-forward "[:space:]") 0)
+                                       (backward-char 1)))))
+    (puni-forward-delete-char arg))
   :hook
   ((lisp-data-mode-hook typescript-ts-mode-hook hcl-mode-hook) . puni-mode)
   (puni-mode-hook . electric-pair-local-mode)
@@ -92,7 +109,8 @@ fall back to `puni-backward-delete-char' (which see)."
   (:map puni-mode-map
         ([remap puni-backward-delete-char]
          .
-         lina/puni-hungry-backward-delete-char)
+         lina-puni-hungry-backward-delete-char)
+        ("<delete>" . lina-puni-hungry-forward-delete-char)
         ("C-k" . lina-puni-kill-whole-line)
         ("C-t" . puni-transpose)
         ("C-w" . lina/puni-c-w-dwim)
@@ -100,8 +118,7 @@ fall back to `puni-backward-delete-char' (which see)."
         ("C-c ." . puni-slurp-forward)
         ("C-c ," . puni-barf-forward)
         ("C-c s" . puni-splice)
-        ("M-r" . nil)
-        ("M-<up>" . nil)
+        ("C-?" . puni-force-delete)
         ("M-<left>" . puni-backward-sexp)
         ("M-<right>" . puni-forward-sexp)
         ("M-9" . puni-wrap-round))

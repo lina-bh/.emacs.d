@@ -35,8 +35,9 @@
            display-buffer-in-side-window
            (window-height . ,(/ 1.0 3))
            (preserve-size . (nil . t))
-           (no-delete-other-windows . t)
-           (slot . 0))
+           (slot . 0)
+           (window-parameters
+            (no-delete-other-windows . t)))
           ((and (not (major-mode . grep-mode))
                 (or
                  (category . warning)

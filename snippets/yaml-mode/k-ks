@@ -1,0 +1,19 @@
+# -*- mode: snippet -*-
+# key: k-ks
+# --
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: $1
+spec:
+  dependsOn: []
+  interval: 1h
+  path: $3
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    namespace: flux-system
+    name: ${2:flux-system}
+  targetNamespace: $4
+  timeout: 15m
+  wait: true

@@ -1,0 +1,12 @@
+# -*- mode: snippet -*-
+# key: k-gitr
+# --
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: $1
+spec:
+  interval: 24h
+  ref:
+    $0
+  url: $2

@@ -1,0 +1,10 @@
+# -*- mode: snippet -*-
+# key: k-svc
+# --
+apiVersion: v1
+kind: Service
+metadata:
+  name: $1
+spec:
+  ports:
+  $0

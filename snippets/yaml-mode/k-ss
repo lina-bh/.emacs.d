@@ -1,0 +1,17 @@
+# -*- mode: snippet -*-
+# key: k-ss
+# --
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: $1
+spec:
+  replicas: 1
+  serviceName: $2
+  template:
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      $0
+      hostUsers: false
+  volumeClaimTemplates:

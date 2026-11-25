@@ -39,3 +39,21 @@
   compiled files, and do not treat a stale or missing `.elc` as a defect of the
   source — validate the `.el` by compiling it fresh (e.g. to a temporary
   directory) rather than by comparing against any checked-in artefact.
+* Avoid reading Info manuals from the internet; if one appears in web search
+  results, read it locally instead. Prefer reading the .texi manual sources
+  directly over rendered Info output; failing that, render locally with:
+  `info --output=- '(manual)Node'`
+  For ELPA packages it may be necessary to add the package's directory to the
+  Info search path, e.g.
+  `info --output=- --directory=$(emacs -Q --batch --eval '(princ (expand-file-name package-user-dir))')/package-version '(elpa-package)Node'`
+  (most packages keep the .info file at the package root; some, like org, use
+  a doc/ subdirectory — append /doc in that case).
+* Prefer grep/zgrep over ripgrep when searching from the shell. When a
+  directory is likely to contain a mix of compressed and uncompressed files
+  (e.g. the Emacs lisp directories, which mix `.el` and `.el.gz` sources),
+  use `rg -z` instead, since it searches both without needing to pick the
+  right tool per file.
+* Prefer standard shell text tools (sed, wc, head, tail, cut, grep) over
+  python one-liners for simple text inspection/manipulation tasks (character
+  counts, substring slicing, line extraction). Reach for python only when the
+  task needs actual logic those tools can't express concisely.

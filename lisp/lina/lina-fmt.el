@@ -61,6 +61,7 @@
      (jq "jq"
          "."
          "-M"
+         "--sort-keys"
          (apheleia-formatters-indent "--tab" "--indent"))
      (prettier-javascript "apheleia-npx"
                           "prettier"
@@ -79,7 +80,12 @@
      (biome "apheleia-npx" "biome" "check" "--write" "--linter-enabled=false"
             "--stdin-file-path" filepath)
      (opentofu "tofu" "fmt" "-")
-     (yamlfmt "yamlfmt" "-in")))
+     (yamlfmt "yamlfmt" "-in")
+     (yq-yaml "yq" "--no-colors" "--input-format" "yaml"
+              "--output-format" "yaml" "--yaml-compact-seq-indent" "--unwrapScalar=false"
+              (apheleia-formatters-indent nil "--indent") "sort_keys(..) | . style=\"literal\"")
+     (yq-toml "yq" "--prettyPrint" "--no-colors" "--input-format" "toml"
+              "--output-format" "toml")))
   (apheleia-mode-alist `((python-mode . (ruff ruff-isort))
                          (,(rx ".tex" eos) . tex-fmt)
                          ,@(mapcar (lambda (mode)
@@ -89,7 +95,8 @@
                          (,(rx ".js" eos) . biome)
                          (,(rx ".ts" (? "x") eos) . biome)
                          (terraform-mode . opentofu)
-                         (,(rx ".yaml" eos) . yamlfmt)))
+                         ("\\.ya?ml\\'" . yamlfmt)
+                         (conf-toml-mode . yq-toml)))
   :config
   (setq-mode-local python-mode apheleia-formatters-respect-fill-column t))
 
